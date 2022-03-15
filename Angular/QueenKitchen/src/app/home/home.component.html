@@ -1,0 +1,139 @@
+<!--Header Start here-->
+<header class="p-3 bg-dark text-white">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none">
+          <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"></use></svg>
+        </a>
+  
+        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+         <h1>Queen's Kitchen</h1>
+        </ul>
+  
+        <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3">
+        </form>
+  
+        <div class="text-end">
+          <button type="button" class="btn btn-outline-light me-2" (click)="openLoginBackDropCustomClass(loginContent)">Login</button>
+          <button type="button" class="btn btn-warning" (click)="openSignUpBackDropCustomClass(signUpContent)">Sign-up</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!--Header End here-->
+  
+  <main class="container" style="margin-left: 5%;">
+  <!--Ads Start Slider-->
+  <div id="carouselExampleControls" class="carousel slide"  data-bs-ride="carousel">
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <img src="/assets/images/carousel1.png" class="d-block w-100" alt="...">
+      </div>
+      <div class="carousel-item">
+        <img src="/assets/images/carousel2.png" class="d-block w-100" alt="...">
+      </div>
+      <div class="carousel-item">
+        <img src="/assets/images/carousel3.png" class="d-block w-100" alt="...">
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+  <!--Ads End Slider-->
+  </main>
+  <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
+    <div class="col-md-4 d-flex align-items-center">
+      <a href="/" class="mb-3 me-2 mb-md-0 text-muted text-decoration-none lh-1">
+        <svg class="bi" width="30" height="24"><use xlink:href="#bootstrap"></use></svg>
+      </a>
+      <span class="text-muted">© 2021 Company, Inc</span>
+    </div>
+  
+    <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+      
+      </ul>
+    </footer>
+  
+    <!--Login Modal Start-->
+    <ng-template #loginContent let-modal>
+      <div class="modal-header">
+        <h4 class="modal-title">Login</h4>
+        <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+  <!--Login Form start-->
+  <form class="row g-3" #userLogin = "ngForm" (ngSubmit) = "onSubmitLogin(userLogin.value)">
+    <div class="col-md-12">
+      <label for="validationDefaultUsername" class="form-label">Username</label>
+      <div class="input-group">
+        <input type="text" name="loginUsername" class="form-control" id="validationDefaultUsername"  aria-describedby="inputGroupPrepend2" required ngModel>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <label for="validationDefault02" class="form-label">Password</label>
+      <input type="password" name="loginPassword" class="form-control" id="validationDefault02" required ngModel>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary" type="submit">Login</button>
+    </div>
+  </form>
+        <!--Login form End-->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="modal.close('Close click')">Close</button>
+      </div>
+    </ng-template>
+  <!--Login Modal End-->
+  
+  <!--SignUp Modal Start-->
+  <ng-template #signUpContent let-modal>
+    <div class="modal-header">
+      <h4 class="modal-title">Register</h4>
+      <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <!--Signup form Start-->
+      <form *ngIf="!isSuccessful"
+      class="row g-3"  #userRegister = "ngForm" (ngSubmit) = "onSubmit(userRegister.value)">
+        <div class="col-md-12">
+          <label for="validationDefaultUsername" class="form-label">Username</label>
+          <div class="input-group">
+            <input type="text" name="username" class="form-control" id="validationDefaultUsername"  aria-describedby="inputGroupPrepend2" required ngModel>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <label for="validationDefaultEmail" class="form-label">Email I'd</label>
+          <div class="input-group">
+            <input type="text" name="email" class="form-control" id="validationDefaultEmail"  aria-describedby="inputGroupPrepend2" required ngModel>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <label for="validationDefault02" class="form-label">Password</label>
+          <input type="password" name="password" class="form-control" id="validationDefault02" required ngModel>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary" type="submit" >Register</button>
+        </div>
+      </form>
+      
+      <div class="alert alert-success" *ngIf="isSuccessful">
+        Your registration is successful!
+      </div>
+  
+      <!--SignUp form End-->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="modal.close('Close click')">Close</button>
+    </div>
+  </ng-template>
+  <!--SignUp Modal End-->

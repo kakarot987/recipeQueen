@@ -1,0 +1,299 @@
+<!--
+  Login Header Start here
+-->
+<header class="p-3 bg-dark text-white">
+  <div class="container">
+    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+      <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none">
+        <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"></use></svg>
+      </a>
+      <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+       <h1>Queen's Kitchen</h1>
+      </ul>
+      <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3">
+        <div class="row">
+          <div class="col">
+            <div ngbDropdown class="d-inline-block">
+              <button class="btn btn-warning" id="dropdownForm1" ngbDropdownToggle>Profile</button>
+              <div ngbDropdownMenu aria-labelledby="dropdownForm1">
+                <img class="dropdown-item rounded-circle" src="/assets/images/dummyPic.png">
+                  <h6 class="dropdown-item">Mayank Devrani</h6>
+                  <li><hr class="dropdown-divider"></li>
+                <button ngbDropdownItem (click)="openchangeProfileModalCustomClass(changeProfileModal)">Change Profile Picture</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </form>
+
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-light me-2" (click)="logout()">Logout</button>
+      </div>
+    </div>
+  
+  </div>
+</header>
+<!--
+  Login Header Ends Here
+-->
+<hr class="my-6">
+<!--
+  Section for Ad start here
+-->
+<div class="container">
+  <div class="row align-items-md-stretch">
+    <div class="col-md-6">
+      <div class="h-100 p-5 text-black bg-warning rounded-3">
+        <h2>Queen's Kitchen</h2>
+        <p>Hi, Welcome to Queen's Kitchen. Save your secret Recipe here without a worry.</p>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="h-100 p-5 text-white bg-dark rounded-3">
+        <h2>Welcome</h2>
+        <p>Click the Bellow Button to add a new Recipe into your collection. </p>
+        <a class="btn btn-warning" data-bs-toggle="modal" href="#addRecipeFormOne" role="button">Add Recipe</a>
+      </div>
+    </div>
+  </div>
+
+  <div>
+
+  <div class="mt-2" *ngFor="let recipe of parsedJson let i = index">
+  <div class="card">
+    <div class="card-header text-white bg-dark" style="display:flex;">
+      <h5>Recipe {{i+1}}</h5>
+      <img *ngIf="recipe.category == 'veg'" src="/assets/images/vegLogo.png" style="width: 4%;" class="" alt="category">
+      <img *ngIf="recipe.category == 'nonveg'" src="/assets/images/nonVegLogo.png" style="width: 4%;" class="" alt="category">
+    </div> 
+
+    <div class="card-body">
+      <h5 class="card-title">{{recipe.title}}</h5>
+      <p class="card-text">{{recipe.recipeDescription}}</p>
+      <div>    
+        <h5>Ingredients</h5>
+      <table class="table">
+        <thead>
+          <tr class="text-black bg-warning ">
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col">Quantity</th>
+          </tr>
+        </thead>
+        <tbody *ngFor="let ingredients of recipe.recipeIngredientList let i = index">
+          <tr>
+            <th scope="row">{{i+1}}</th>
+            <td>{{ingredients.name}}</td>
+            <td>{{ingredients.ingredientQuantity}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h5>Steps</h5>
+      <table class="table">
+        <thead>
+          <tr class="text-black bg-warning ">
+            <th scope="col">#</th>
+            <th scope="col">Headline</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody *ngFor="let step of recipe.recipeSteps">
+          <tr>
+            <th scope="row">Step: {{step.number}}</th>
+            <td>{{step.headline}}</td>
+            <td>{{step.description}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+  
+
+</div>
+  </div>
+</div>
+<!--
+  Section for Ad ends here
+-->
+  <!--Change Profile Picture Modal Start-->
+  <ng-template #changeProfileModal let-modal>
+    <div class="modal-header">
+      <h4 class="modal-title">Change Picture</h4>
+      <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <label class="image-upload-container btn btn-bwm">
+        <span>Select Image</span>
+        <input #imageInput
+               type="file"
+               accept="image/*"
+               (change)="processFile(imageInput)">
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="modal.close('Close click')">Close</button>
+    </div>
+  </ng-template>
+  <!--Change Profile Picture Modal End-->
+  
+  <!--
+    Add New recipe Modal Start
+  -->
+    <!--
+      First Model for Recipe Introduction starts here
+    -->
+  <div class="modal fade" id="addRecipeFormOne" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-labelledby="exampleModalToggleLabel" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalToggleLabel">Intro</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form #recipeIntro = "ngForm" (ngSubmit) = "onSubmitAddIntro(recipeIntro.value)">
+            <div class="form-group">
+              <label for="formGroupExampleInput">Title</label>
+              <input name="recipeTitle" type="text" class="form-control" id="recipeTitle" placeholder="Recipe Name" ngModel>
+            </div>
+            <div>
+              
+              <div class="form-check form-check-inline">
+                <input #checkVeg  class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" (change)="getCheckboxesValueVeg(checkVeg.value)">
+                <label class="form-check-label" for="flexRadioDefault1">
+                  Veg
+                </label>
+              </div>
+              <div class="form-check form-check-inline" >
+                <input #checkNonVeg class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2" (change)="getCheckboxesValueNonVeg(checkNonVeg.value)">
+                <label class="form-check-label" for="flexRadioDefault2">
+                  Non-veg
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="formGroupExampleInput2">Short Description</label>
+              <textarea name="recipeshortDiscription" class="form-control" id="exampleFormControlTextarea1" rows="3" ngModel></textarea>
+            </div>
+            <div class="modal-dialog-centered">
+              <button class="btn btn-primary" type="submit">Save</button>
+            </div>
+          </form>       
+         </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" data-bs-target="#recipeIngredients" data-bs-toggle="modal">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!--
+      First Model for Recipe Introduction ends here
+    -->
+      <!--
+      Second Model for Recipe Ingredients starts here
+    -->
+  <div class="modal fade" id="recipeIngredients" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalToggleLabel2">Recipe Ingredients</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form #recipeAddIngredients = "ngForm" (ngSubmit) = "onSubmitAddRecipe(recipeAddIngredients.value)">
+            <div class="row">
+              <div class="col-6">
+                <input name="ingredientName" type="text" class="form-control" placeholder="Name" ngModel>
+              </div>
+              <div class="col-4">
+                <input name="ingredientQuantity" type="number" class="form-control" placeholder="Quantity" ngModel>
+              </div>
+              <div class="col-2">
+                <button class="btn rounded-circle" type="submit">
+                  <img src="/assets/images/addIngLogo.png" width="30">
+                </button>
+              </div>
+            </div>
+          </form>
+          <div *ngFor="let ingList of recipeIngredient">
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ingList.name}}
+                <span class="badge badge-primary badge-pill bg-dark">{{ingList.ingredientQuantity}}</span>
+                <button class="btn rounded-circle" (click)="editingredient(ingList.name)">
+                  <img src="/assets/images/editingredient.png" width="20">
+                </button>
+              </li>          
+            </ul>
+          </div>
+        </div>
+         
+        <div class="modal-footer">
+          <button class="btn btn-primary" data-bs-target="#addRecipeFormOne" data-bs-toggle="modal">Back to Intro</button>
+          <button class="btn btn-primary" data-bs-target="#recipeSteps" data-bs-toggle="modal">Next</button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+   <!--
+      Second Model for Recipe Ingredients ends here
+    -->
+      <!--
+      Thrid Model for Recipe steps starts here
+    -->
+  <div class="modal fade" id="recipeSteps" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-labelledby="exampleModalToggleLabel2" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalToggleLabel2">Steps</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form #recipeAddSteps = "ngForm" (ngSubmit) = "onSubmitRecipeSteps(recipeAddSteps.value)">
+            <div class="row">
+              <div class="col-2">
+                <input name="stepNumber" type="text" class="form-control" placeholder="Step No." ngModel>
+              </div>
+              <div class="col-4">
+                <input name="stepHeadline" type="text" class="form-control" placeholder="Heading" ngModel>
+              </div>
+              <div class="col-4">
+                <div class="form-group">
+                  <textarea name="stepDescription" class="form-control" id="exampleFormControlTextarea1" rows="3" placeholder="Description" ngModel></textarea>
+                </div>              
+              </div>
+              <div class="col-2">
+                <button class="btn rounded-circle" type="submit">
+                  <img src="/assets/images/addIngLogo.png" width="30">
+                </button>
+              </div>
+            </div>
+          </form>
+          <div *ngFor="let recipeStep of recipeSteps">
+            <div class="row">
+              <div class="col-2">
+                <button type="button" class="btn btn-light"  (click)="editSteps(recipeStep.number)">{{recipeStep.number}}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" data-bs-target="#recipeIngredients" data-bs-toggle="modal">Previous</button>
+          <button class="btn btn-primary" (click)="addRecipeFinal()">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--
+      Third Model for Recipe steps ends here
+    -->
+    <!--
+    Add New recipe Modal ends
+  -->

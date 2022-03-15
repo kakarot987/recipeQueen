@@ -1,0 +1,27 @@
+{
+    "userId":1,
+    "title" : "Noodles",
+    "category" : "veg",
+    "categoryDescription" : "Veg Noodles",
+    "recipeIngredientList" : [
+        {
+        "name" : "Sauce",
+        "ingredientQuantity" : "5kg"
+        },
+        {
+            "name" : "Vinegar",
+            "ingredientQuantity" : "10kg"
+        }
+    ],
+    "recipeStepsList" : [{
+        "number" : 1,
+        "headline" : "Init",
+        "decription" : "Open the Packate"
+    },
+    {
+        "number" : 2,
+        "headline" : "Start",
+        "decription" : "Boil the water"
+    }
+]
+}
