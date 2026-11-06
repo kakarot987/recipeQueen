@@ -44,13 +44,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '22.22.3'
           cache: npm
           cache-dependency-path: Angular/QueenKitchen/package-lock.json
       - name: Install and build frontend
         working-directory: Angular/QueenKitchen
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npm run build
 
   e2e:
@@ -82,13 +82,13 @@ jobs:
           curl -fsS http://127.0.0.1:5000/actuator/health
       - uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '22.22.3'
           cache: npm
           cache-dependency-path: Angular/QueenKitchen/package-lock.json
       - name: Start Angular development server
         working-directory: Angular/QueenKitchen
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           nohup npm start -- --host 127.0.0.1 > /tmp/angular.log 2>&1 &
           for i in $(seq 1 60); do
             curl -fsS http://127.0.0.1:4200 >/dev/null && break || sleep 3
@@ -102,7 +102,7 @@ jobs:
         env:
           CI: 'true'
         run: |
-          npm install --no-save --legacy-peer-deps @playwright/test@1.56.1
+          npm install --no-save @playwright/test@1.56.1
           npx playwright install --with-deps chromium
           npx playwright test
       - name: Print backend and frontend diagnostics on failure

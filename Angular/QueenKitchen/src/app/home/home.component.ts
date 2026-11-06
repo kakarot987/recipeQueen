@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../service/auth.service';
 import { TokenStorageService } from '../service/token-storage.service';
 
-@Component({
+@Component({ standalone: false,
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']

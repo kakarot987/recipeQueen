@@ -5,7 +5,7 @@ import { PlannerService, ShoppingItem, MealPlanEntry, RecipeReview } from '../se
 import { scaledAmount } from '../service/servings.util';
 import { TokenStorageService } from '../service/token-storage.service';
 
-@Component({
+@Component({ standalone: false,
   selector: 'app-login-user',
   templateUrl: './login-user.component.html',
   styleUrls: ['./login-user.component.css']
