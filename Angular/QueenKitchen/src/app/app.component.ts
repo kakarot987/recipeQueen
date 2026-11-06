@@ -1,27 +1,11 @@
-import { Component} from '@angular/core';
-import { Router, ActivatedRoute, ParamMap } from '@angular/router';
-import { TokenStorageService } from "./service/token-storage.service";
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { TokenStorageService } from './service/token-storage.service';
 
-@Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
-})
-export class AppComponent {
-  isLoggedIn = false;
-  constructor(private router: Router,private tokenStorage:TokenStorageService) {}
+@Component({ selector: 'app-root', templateUrl: './app.component.html', styleUrls: ['./app.component.css'] })
+export class AppComponent implements OnInit {
+  constructor(private router: Router, private tokens: TokenStorageService) {}
   ngOnInit(): void {
-   // console.log(this.tokenStorage.getUser())
-   // this.isLoggedIn = !!this.tokenStorage.getToken();
-   if(this.tokenStorage.getToken() == '{}'){
-    this.router.navigate(['/home']);
-   }
-   else{
-    this.router.navigate(['/login']);
-   }
-  }
-
-  logout(): void {
-    this.tokenStorage.signOut();
+    this.router.navigate([this.tokens.getToken() ? '/login' : '/home']);
   }
 }

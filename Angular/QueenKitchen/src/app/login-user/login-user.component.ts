@@ -1,200 +1,188 @@
-import { Component, OnInit ,ViewEncapsulation} from '@angular/core';
-import { TokenStorageService } from "../service/token-storage.service";
-import { ImageService } from "../service/image.service";
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { RecipeIngredient } from "src/assets/ingredientRecipe";
-import { RecipeSteps } from "src/assets/recipeSteps";
-import { RecipeService } from "../service/recipe.service";
-import { RecipeResponse } from "src/assets/recipeResponse";
-
-class ImageSnippet {
- 
-  constructor(public src: string, public file: File) {}
-}
-
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
+import { RecipeService, Recipe, RecipeForm, Ingredient, Step } from '../service/recipe.service';
+import { TokenStorageService } from '../service/token-storage.service';
 
 @Component({
   selector: 'app-login-user',
   templateUrl: './login-user.component.html',
-  styleUrls: ['./login-user.component.css'],
-  encapsulation: ViewEncapsulation.None,
-  styles: [`
-    .dark-modal .modal-content {
-      background-color: #292b2c;
-      color: white;
-    }
-    .dark-modal .close {
-      color: white;
-    }
-    .light-blue-backdrop {
-      background-color: #5cb3fd;
-    }
-  `]
+  styleUrls: ['./login-user.component.css']
 })
-export class LoginUserComponent implements OnInit {
+export class LoginUserComponent implements OnInit, OnDestroy {
+  recipes: Recipe[] = [];
+  favoriteIds = new Set<number>();
+  favorites: Recipe[] = [];
+  imageUrls: Record<number, string> = {};
+  activeTab: 'discover' | 'mine' | 'favorites' | 'shopping' = 'discover';
+  search = '';
+  ingredient = '';
+  category = '';
+  page = 0;
+  totalPages = 0;
+  totalElements = 0;
+  busy = false;
+  saving = false;
+  error = '';
+  success = '';
+  editingId: number | null = null;
+  showEditor = false;
+  draft: RecipeForm = this.emptyForm();
+  newIngredient: Ingredient = { name: '', ingredientQuantity: '' };
+  newStep: Step = { number: '', headline: '', description: '' };
+  pendingImage: File | null = null;
+  shoppingItems: { name: string; quantity: string; checked: boolean }[] = [];
+  selectedForShopping = new Set<number>();
 
-  recipeIngredient : Array<RecipeIngredient> = []
-
-  recipeSteps : Array<RecipeSteps> = []
-
-  constructor(private tokenStorage:TokenStorageService,
-    private modalService: NgbModal,
-    private imageService:ImageService,
-    private recipeService: RecipeService) {
-  }
-
-  recipeResponse : Array<RecipeResponse> = []
-  stringifiedData: any;  
-  parsedJson: any; 
+  constructor(private api: RecipeService, private tokens: TokenStorageService, private router: Router) {}
+  get username(): string { return this.tokens.getUser()?.username || 'Cook'; }
+  get userId(): number { return this.tokens.getUser()?.id; }
   ngOnInit(): void {
-    this.userId = this.tokenStorage.getUser().id;
-    console.log(this.userId)
-    this.recipeService.getrecipe(this.userId).subscribe(
-      data =>{
-        console.log(data.response)
-        this.stringifiedData = JSON.stringify(data);  
-        this.parsedJson = JSON.parse(this.stringifiedData);
-        console.log(this.parsedJson)
-        for (let index = 0; index < this.parsedJson.length; index++) {
-          console.log(this.parsedJson[index].category)
-          console.log(this.parsedJson[index].userId)
-          console.log(this.parsedJson[index].title)
-          console.log(this.parsedJson[index].recipeDescription)
-          console.log("---------",this.parsedJson[index].recipeIngredientList)
-        console.log("---------S",this.parsedJson[index].recipeSteps[0].headline)
-        }
-      }
-    )
+    if (!this.tokens.getToken()) { this.router.navigate(['/home']); return; }
+    this.loadFavorites();
+    this.load();
   }
-  selectedFile !: ImageSnippet;
-
-  processFile(imageInput: any) {
-    console.log("inside image Input function")
-    const file: File = imageInput.files[0];
-    const reader = new FileReader();
-
-    reader.addEventListener('load', (event: any) => {
-
-      this.selectedFile = new ImageSnippet(event.target.result, file);
-
-      this.imageService.uploadProfilePic(this.selectedFile.file).subscribe(
-        (res) => {
-        
-        },
-        (err) => {
-        
-        })
+  ngOnDestroy(): void {
+    Object.values(this.imageUrls).forEach(url => URL.revokeObjectURL(url));
+  }
+  emptyForm(): RecipeForm {
+    return { title: '', category: 'veg', categoryDescription: '', published: true,
+      recipeIngredientList: [], recipeStepsList: [] };
+  }
+  setTab(tab: 'discover' | 'mine' | 'favorites' | 'shopping'): void {
+    this.activeTab = tab; this.page = 0; this.error = ''; this.success = '';
+    if (tab === 'favorites') this.loadFavorites();
+    else if (tab !== 'shopping') this.load();
+  }
+  load(): void {
+    this.busy = true; this.error = '';
+    this.api.list({ search: this.search, ingredient: this.ingredient, category: this.category,
+      mine: this.activeTab === 'mine', page: this.page, size: 9 }).subscribe({
+      next: data => {
+        this.recipes = data.content;
+        this.totalPages = data.totalPages;
+        this.totalElements = data.totalElements;
+        this.busy = false;
+        this.loadImages(this.recipes);
+      },
+      error: () => { this.busy = false; this.error = 'Unable to load recipes. Please sign in again if your session expired.'; }
     });
-
-    reader.readAsDataURL(file);
   }
-  openchangeProfileModalCustomClass(changeProfileContent:any) {
-    this.modalService.open(changeProfileContent, {backdropClass: 'light-blue-backdrop'});
+  applySearch(): void { this.page = 0; this.load(); }
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages) return;
+    this.page = page; this.load();
   }
-
-  addRecipeModal(addRecipeContent:any) {
-    this.modalService.open(addRecipeContent, {backdropClass: 'light-blue-backdrop'});
+  loadFavorites(): void {
+    this.api.favorites().subscribe({
+      next: data => {
+        this.favorites = data; this.favoriteIds = new Set(data.map(r => r.id));
+        this.loadImages(data);
+      },
+      error: () => { this.error = 'Unable to load favorites.'; }
+    });
   }
-
-
-  recipeTitle !: string
-  recipeshortDiscription !: string
-  recipeCategory !: string
-
-  onSubmitAddIntro(data:any){
-    this.recipeTitle = data.recipeTitle;
-    this.recipeshortDiscription = data.recipeshortDiscription;
-    console.log(data.recipeTitle , data.recipeshortDiscription)
-    console.log(this.nonVeg , this.veg)
-  } 
-
-  veg : boolean = false
-  nonVeg : boolean = false
-  getCheckboxesValueVeg(data : any) {
-    this.veg = true
-    this.nonVeg = false
+  loadImages(recipes: Recipe[]): void {
+    recipes.filter(recipe => recipe.hasImage && !this.imageUrls[recipe.id]).forEach(recipe => {
+      this.api.image(recipe.id).subscribe({
+        next: blob => { if (blob.type.startsWith('image/')) this.imageUrls[recipe.id] = URL.createObjectURL(blob); },
+        error: () => { /* image is optional */ }
+      });
+    });
   }
-  getCheckboxesValueNonVeg(data:any){
-    this.veg = false
-    this.nonVeg = true
+  toggleFavorite(recipe: Recipe): void {
+    const wasFavorite = this.favoriteIds.has(recipe.id);
+    const action = wasFavorite ? this.api.unfavorite(recipe.id) : this.api.favorite(recipe.id);
+    action.subscribe({
+      next: () => this.loadFavorites(),
+      error: () => { this.error = 'Could not update favorite.'; }
+    });
   }
-
-  userId !: any
-  addRecipeFinal(){
-    console.log("-----userId",this.tokenStorage.getUser().id)
-    console.log("inside")
-    console.log("------------",this.recipeIngredient);
-    console.log("------------",this.recipeSteps);
-    console.log("------------",this.recipeshortDiscription);
-    console.log("------------",this.recipeTitle);
-    if(this.veg == true){
-      this.recipeCategory = "veg"
-    } else if(this.veg == false){
-      this.recipeCategory = "non-veg"
+  openCreate(): void {
+    this.editingId = null; this.draft = this.emptyForm(); this.newIngredient = { name: '', ingredientQuantity: '' };
+    this.newStep = { number: '', headline: '', description: '' }; this.pendingImage = null; this.showEditor = true; this.error = '';
+  }
+  openEdit(recipe: Recipe): void {
+    this.editingId = recipe.id;
+    this.draft = {
+      title: recipe.title, category: recipe.category, categoryDescription: recipe.recipeDescription,
+      published: recipe.published,
+      recipeIngredientList: recipe.recipeIngredientList.map(i => ({ name: i.name, ingredientQuantity: i.ingredientQuantity })),
+      recipeStepsList: recipe.recipeSteps.map(s => ({ number: s.number, headline: s.headline, description: s.description }))
+    };
+    this.pendingImage = null; this.showEditor = true; this.error = '';
+  }
+  addIngredient(): void {
+    if (!this.newIngredient.name.trim() || !this.newIngredient.ingredientQuantity.trim()) return;
+    this.draft.recipeIngredientList.push({ name: this.newIngredient.name.trim(), ingredientQuantity: this.newIngredient.ingredientQuantity.trim() });
+    this.newIngredient = { name: '', ingredientQuantity: '' };
+  }
+  addStep(): void {
+    if (!this.newStep.headline.trim() || !this.newStep.description.trim()) return;
+    this.draft.recipeStepsList.push({ number: String(this.draft.recipeStepsList.length + 1),
+      headline: this.newStep.headline.trim(), description: this.newStep.description.trim() });
+    this.newStep = { number: '', headline: '', description: '' };
+  }
+  chooseImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      this.error = 'Choose a JPEG or PNG up to 2 MB'; input.value = ''; return;
     }
-    console.log("------------",this.recipeCategory);
-    this.recipeService.addrecipe(this.userId,this.recipeTitle,
-      this.recipeCategory,this.recipeshortDiscription,this.recipeIngredient,
-      this.recipeSteps).subscribe(
-        data => {
-          console.log("------Data Here After success");
-          this.ngOnInit();
-        }
-        ,
-        error =>{
-          console.log(error);
-        }
-      )
+    this.pendingImage = file;
   }
-
-  onSubmitAddRecipe(data:any){
-    let recipeIng = new RecipeIngredient();
-    window.sessionStorage.setItem("ingredientName",data.ingredientName);
-    window.sessionStorage.setItem("ingredientQuantity",data.ingredientQuantity)
-
-    recipeIng.name = (sessionStorage.getItem("ingredientName") || '{}')
-    recipeIng.ingredientQuantity = (sessionStorage.getItem("ingredientQuantity")|| '{}')
-
-    this.recipeIngredient.push(recipeIng);
-    data.ingredientName = " "
-    data.ingredientQuantity = " "
-    console.log("list here is" + this.recipeIngredient.length)
+  save(): void {
+    if (!this.draft.title.trim() || !this.draft.categoryDescription.trim() ||
+      this.draft.recipeIngredientList.length === 0 || this.draft.recipeStepsList.length === 0) {
+      this.error = 'Add a title, description, at least one ingredient and at least one step.'; return;
+    }
+    this.saving = true; this.error = '';
+    const action = this.editingId === null ? this.api.create(this.draft) : this.api.update(this.editingId, this.draft);
+    action.subscribe({
+      next: recipe => {
+        if (this.pendingImage) {
+          this.api.uploadImage(recipe.id, this.pendingImage).subscribe({
+            next: () => this.saved(),
+            error: () => { this.saved(); this.error = 'Recipe saved, but image upload failed.'; }
+          });
+        } else this.saved();
+      },
+      error: err => { this.saving = false; this.error = err.error?.message || 'Could not save recipe. Check the fields.'; }
+    });
   }
-
-  editingredient(data:any){
-    console.log("inside here",data);
-    //const index = this.recipeIngredient.findIndex(ingre => ingre === data)
-    //console.log("inside here",index);
-    this.recipeIngredient.forEach((value,index) =>{
-      if(value.name == data) this.recipeIngredient.splice(index,1);
-    })
+  saved(): void {
+    this.saving = false; this.showEditor = false; this.success = 'Recipe saved.';
+    Object.values(this.imageUrls).forEach(url => URL.revokeObjectURL(url));
+    this.imageUrls = {};
+    this.load(); this.loadFavorites();
   }
-
-  onSubmitRecipeSteps(data:any){
-    let steps = new RecipeSteps();
-    window.sessionStorage.setItem("stepNumber",data.stepNumber)
-    window.sessionStorage.setItem("stepHeadline",data.stepHeadline)
-    window.sessionStorage.setItem("stepDescription",data.stepDescription)
-
-    steps.number = (window.sessionStorage.getItem("stepNumber") || '{}')
-    steps.headline = (window.sessionStorage.getItem("stepHeadline") || '{}')
-    steps.description = (window.sessionStorage.getItem("stepDescription") || '{}')
-
-    this.recipeSteps.push(steps)
+  remove(recipe: Recipe): void {
+    if (!window.confirm('Delete "' + recipe.title + '" permanently?')) return;
+    this.api.delete(recipe.id).subscribe({
+      next: () => { this.success = 'Recipe deleted.'; this.load(); this.loadFavorites(); },
+      error: () => { this.error = 'Delete failed.'; }
+    });
   }
-
-  editSteps(data:any){
-    this.recipeSteps.forEach((value,index) =>{
-      if(value.number == data) this.recipeSteps.splice(index,1);
-    })
+  toggleShopping(recipe: Recipe): void {
+    if (this.selectedForShopping.has(recipe.id)) this.selectedForShopping.delete(recipe.id);
+    else this.selectedForShopping.add(recipe.id);
+    this.buildShoppingList();
   }
-
-  logout(): void {
-    console.log("inside logout")
-    this.tokenStorage.signOut();
-    this.reloadPage();
+  buildShoppingList(): void {
+    const all = [...this.recipes, ...this.favorites];
+    const unique = new Map<number, Recipe>();
+    all.forEach(recipe => unique.set(recipe.id, recipe));
+    const lines = new Map<string, { name: string; quantity: string; checked: boolean }>();
+    unique.forEach(recipe => {
+      if (!this.selectedForShopping.has(recipe.id)) return;
+      recipe.recipeIngredientList.forEach(i => {
+        const key = i.name.trim().toLowerCase();
+        const existing = lines.get(key);
+        if (existing) existing.quantity += ', ' + i.ingredientQuantity;
+        else lines.set(key, { name: i.name, quantity: i.ingredientQuantity, checked: false });
+      });
+    });
+    this.shoppingItems = Array.from(lines.values());
   }
-  reloadPage(): void {
-    window.location.reload();
-  }
+  logout(): void { this.tokens.signOut(); this.router.navigate(['/home']); }
 }
