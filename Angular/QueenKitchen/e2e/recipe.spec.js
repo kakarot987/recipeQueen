@@ -15,7 +15,7 @@ test('register, publish, search, favorite and revisit after reload', async ({ pa
   await expect(page.getByRole('heading', { name: 'Your recipe collection' })).toBeVisible();
 
   await page.getByRole('button', { name: /Create recipe/ }).click();
-  await page.getByLabel('Title').fill(title);
+  await page.locator('input#title').fill(title);
   await page.getByLabel('Description').fill('Fresh tomato soup');
   await page.getByPlaceholder('Ingredient', { exact: true }).fill('Tomato');
   await page.getByPlaceholder('Amount and unit (e.g. 2 cups)').fill('2 cups');
