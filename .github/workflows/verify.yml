@@ -40,8 +40,6 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,18 +50,8 @@ jobs:
       - name: Install and build frontend
         working-directory: Angular/QueenKitchen
         run: |
-          npm install -g npm@11 && rm -f package-lock.json && npm install --no-audit --no-fund
+          npm install -g npm@11 && npm ci --no-audit --no-fund
           npm run build
-      - name: Commit Angular 22 dependency lockfile
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/framework-modernization'
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Angular/QueenKitchen/package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'chore: regenerate Angular 22 Vitest 4 lockfile [skip ci]'
-            git push origin HEAD:feature/framework-modernization
-          fi
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -99,7 +87,7 @@ jobs:
       - name: Start Angular development server
         working-directory: Angular/QueenKitchen
         run: |
-          npm install -g npm@11 && rm -f package-lock.json && npm install --no-audit --no-fund
+          npm install -g npm@11 && npm ci --no-audit --no-fund
           nohup npm start -- --host 127.0.0.1 > /tmp/angular.log 2>&1 &
           for i in $(seq 1 60); do
             curl -fsS http://127.0.0.1:4200 >/dev/null && break || sleep 3
@@ -107,12 +95,13 @@ jobs:
           curl -fsS http://127.0.0.1:4200 >/dev/null
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.22.3'
       - name: Browser smoke test
         working-directory: Angular/QueenKitchen
         env:
           CI: 'true'
         run: |
+          npm install -g npm@11
           npm install --no-save @playwright/test@1.56.1
           npx playwright install --with-deps chromium
           npx playwright test
