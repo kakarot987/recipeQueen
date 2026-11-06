@@ -16,7 +16,7 @@ Angular 22 uses its own dependency lockfile. The package manifest and lockfile m
 1. From `QueensKitchenSpringBoot/`, copy `.env.example` to `.env` and replace *all* placeholder secrets.
 2. Run `./gradlew clean bootJar` (Windows: `gradlew.bat clean bootJar`).
 3. Run `docker compose up --build -d` from the same backend directory.
-4. Run `cd Angular/QueenKitchen && npm install && npm start` from the repository root.
+4. Run `cd Angular/QueenKitchen && npm ci && npm start` from the repository root.
 5. Visit http://localhost:4200, register, sign in, publish a recipe, and try searching.
 
 **Alternative backend without Docker:** Start MySQL locally and export
