@@ -2,7 +2,6 @@ package com.QueensKitchenSpringBoot.controllers.Authentication.security;
 
 
 import com.QueensKitchenSpringBoot.controllers.Authentication.models.User;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +20,6 @@ public class UserDetailsImpl implements UserDetails {
 
 	private String email;
 	
-	@JsonIgnore
 	private String password;
 
 	private Collection<? extends GrantedAuthority> authorities;
