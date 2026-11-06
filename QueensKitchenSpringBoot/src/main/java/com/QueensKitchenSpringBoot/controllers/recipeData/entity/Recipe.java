@@ -21,8 +21,10 @@ public class Recipe {
     @Lob @Basic(fetch = FetchType.LAZY) private byte[] imageData;
     @Column(length = 30) private String imageContentType;
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinTable(name = "recipe_info_recipe_ingredients", joinColumns = @JoinColumn(name = "recipe_recipe_id"), inverseJoinColumns = @JoinColumn(name = "recipe_ingredient_list_ingredient_id", unique = true))
     private List<RecipeIngredient> recipeIngredientList = new ArrayList<>();
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinTable(name = "recipe_info_recipe_steps", joinColumns = @JoinColumn(name = "recipe_recipe_id"), inverseJoinColumns = @JoinColumn(name = "recipe_steps_step_id", unique = true))
     private List<RecipeSteps> recipeSteps = new ArrayList<>();
 
     public int getServings() { return servings; }
