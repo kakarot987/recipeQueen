@@ -41,6 +41,7 @@ Place an HTTPS reverse proxy in front of localhost:8080; the Angular UI uses rel
 - Expose Spring Actuator `/actuator/health` to your internal monitoring service; do not expose other management endpoints publicly.
 - Collect structured request status and application error logs in a centralized platform. Avoid storing tokens/passwords.
 - Monitor availability, 5xx rates, MySQL storage usage, database backups, and CPU/memory pressure.
+- Micrometer publishes `/actuator/prometheus`; keep it **internal and authenticated** (the public Nginx proxy only forwards `/actuator/health`). Configure the internal monitoring scraper with authorized access, or bind a separate private management interface. Never publish the Prometheus metrics endpoint directly on the public Internet.
 - Enable HTTPS, HSTS at the TLS edge, secure cipher suites, and routine dependency scans.
 - Back up the MySQL Docker volume daily and **test restoring** into staging. Keep backups encrypted and access-controlled.
 - Apply migrations to staging first, then deploy a reviewed release. `ddl-auto=validate` ensures Hibernate does not silently rewrite the schema.
