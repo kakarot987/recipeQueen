@@ -54,6 +54,16 @@ jobs:
         run: |
           npm install -g npm@11 && rm -f package-lock.json && npm install --no-audit --no-fund
           npm run build
+      - name: Commit Angular 22 dependency lockfile
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/framework-modernization'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Angular/QueenKitchen/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: regenerate Angular 22 Vitest 4 lockfile [skip ci]'
+            git push origin HEAD:feature/framework-modernization
+          fi
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
