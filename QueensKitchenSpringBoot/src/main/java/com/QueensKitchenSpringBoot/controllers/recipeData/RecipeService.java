@@ -4,6 +4,9 @@ import com.QueensKitchenSpringBoot.controllers.recipeData.entity.*;
 import com.QueensKitchenSpringBoot.controllers.recipeData.payload.*;
 import com.QueensKitchenSpringBoot.controllers.recipeData.repository.*;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.JoinType;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,8 +47,21 @@ public class RecipeService {
                                    boolean mine, int page, int size) {
         if (page < 0 || size < 1 || size > 50)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pagination");
-        return recipes.search(userId, mine, filter(query), filter(ingredient), filter(category),
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")))
+        String title = filter(query), ingredientFilter = filter(ingredient), categoryFilter = filter(category);
+        Specification<Recipe> spec = (root, criteria, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.or(cb.isTrue(root.get("published")), cb.equal(root.get("userId"), userId)));
+            if (mine) predicates.add(cb.equal(root.get("userId"), userId));
+            if (title != null) predicates.add(cb.like(cb.lower(root.get("title")), "%" + title.toLowerCase(java.util.Locale.ROOT) + "%"));
+            if (categoryFilter != null) predicates.add(cb.equal(cb.lower(root.get("category")), categoryFilter.toLowerCase(java.util.Locale.ROOT)));
+            if (ingredientFilter != null) {
+                criteria.distinct(true);
+                predicates.add(cb.like(cb.lower(root.join("recipeIngredientList", JoinType.INNER).get("name")),
+                    "%" + ingredientFilter.toLowerCase(java.util.Locale.ROOT) + "%"));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return recipes.findAll(spec, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")))
             .map(RecipeView::new);
     }
     @Transactional(readOnly = true)

@@ -58,7 +58,7 @@ class RecipeServiceTest {
     }
 
     @Test void searchReturnsEmptyPage() {
-        when(recipes.search(eq(1L), eq(false), isNull(), isNull(), isNull(), any(Pageable.class)))
+        when(recipes.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
             .thenReturn(Page.empty());
         Page<RecipeView> result = service.search(1L, "  ", null, "", false, 0, 12);
         assertTrue(result.isEmpty());
