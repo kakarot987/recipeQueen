@@ -1,76 +1,34 @@
 package com.QueensKitchenSpringBoot.controllers.recipeData.payload;
 
-import com.QueensKitchenSpringBoot.controllers.recipeData.entity.RecipeIngredient;
-import com.QueensKitchenSpringBoot.controllers.recipeData.entity.RecipeSteps;
-
+import com.QueensKitchenSpringBoot.controllers.recipeData.entity.*;
+import javax.validation.Valid;
+import javax.validation.constraints.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RequestRecipeBody {
-
-    private Long userId;
+    @NotBlank @Size(max = 160)
     private String title;
+    @NotBlank @Size(max = 60)
     private String category;
+    @NotBlank @Size(max = 2000)
     private String categoryDescription;
+    @NotEmpty @Valid
+    private List<RecipeIngredient> recipeIngredientList = new ArrayList<>();
+    @NotEmpty @Valid
+    private List<RecipeSteps> recipeStepsList = new ArrayList<>();
+    private boolean published = true;
 
-    private List<RecipeIngredient> recipeIngredientList = new ArrayList<RecipeIngredient>();
-
-    private List<RecipeSteps> recipeStepsList = new ArrayList<RecipeSteps>();
-
-    public RequestRecipeBody(Long userId, String title, String category, String categoryDescription, List<RecipeIngredient> recipeIngredientList, List<RecipeSteps> recipeStepsList) {
-        this.userId = userId;
-        this.title = title;
-        this.category = category;
-        this.categoryDescription = categoryDescription;
-        this.recipeIngredientList = recipeIngredientList;
-        this.recipeStepsList = recipeStepsList;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getCategoryDescription() {
-        return categoryDescription;
-    }
-
-    public void setCategoryDescription(String categoryDescription) {
-        this.categoryDescription = categoryDescription;
-    }
-
-    public List<RecipeIngredient> getRecipeIngredientList() {
-        return recipeIngredientList;
-    }
-
-    public void setRecipeIngredientList(List<RecipeIngredient> recipeIngredientList) {
-        this.recipeIngredientList = recipeIngredientList;
-    }
-
-    public List<RecipeSteps> getRecipeStepsList() {
-        return recipeStepsList;
-    }
-
-    public void setRecipeStepsList(List<RecipeSteps> recipeStepsList) {
-        this.recipeStepsList = recipeStepsList;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String value) { title = value; }
+    public String getCategory() { return category; }
+    public void setCategory(String value) { category = value; }
+    public String getCategoryDescription() { return categoryDescription; }
+    public void setCategoryDescription(String value) { categoryDescription = value; }
+    public List<RecipeIngredient> getRecipeIngredientList() { return recipeIngredientList; }
+    public void setRecipeIngredientList(List<RecipeIngredient> value) { recipeIngredientList = value; }
+    public List<RecipeSteps> getRecipeStepsList() { return recipeStepsList; }
+    public void setRecipeStepsList(List<RecipeSteps> value) { recipeStepsList = value; }
+    public boolean isPublished() { return published; }
+    public void setPublished(boolean value) { published = value; }
 }
