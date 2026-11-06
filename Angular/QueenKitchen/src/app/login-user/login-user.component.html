@@ -1,13 +1,14 @@
 <header class="bg-dark text-white py-3">
   <nav class="container d-flex justify-content-between align-items-center gap-3">
     <h1 class="h3 mb-0">Queen's Kitchen</h1>
-    <div class="d-flex align-items-center gap-3"><span class="d-none d-sm-inline">Hi, {{username}}</span>
+    <div class="d-flex align-items-center gap-3"><img *ngIf="profileUrl" [src]="profileUrl" class="profile-thumb" alt="Your profile photo"><span class="d-none d-sm-inline">Hi, {{username}}</span>
       <button class="btn btn-outline-light" (click)="logout()">Sign out</button></div>
   </nav>
 </header>
 <main class="container py-4">
   <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
     <h2 class="h4 mb-0">Your recipe collection</h2>
+    <label class="btn btn-outline-dark btn-sm">Profile picture <input type="file" accept="image/jpeg,image/png" class="visually-hidden" (change)="uploadProfile($event)" [disabled]="profileUploading"></label>
     <button class="btn btn-warning" (click)="openCreate()">+ Create recipe</button>
   </div>
   <nav class="nav nav-pills mb-4 gap-2" aria-label="Recipe sections">
@@ -15,6 +16,7 @@
     <button class="nav-link" [class.active]="activeTab === 'mine'" (click)="setTab('mine')">My recipes</button>
     <button class="nav-link" [class.active]="activeTab === 'favorites'" (click)="setTab('favorites')">Favorites ({{favorites.length}})</button>
     <button class="nav-link" [class.active]="activeTab === 'shopping'" (click)="setTab('shopping')">Shopping list</button>
+    <button class="nav-link" [class.active]="activeTab === 'planner'" (click)="setTab('planner')">Meal planner</button>
   </nav>
   <div class="alert alert-danger" role="alert" *ngIf="error">{{error}}</div>
   <div class="alert alert-success" role="status" *ngIf="success">{{success}}</div>
@@ -36,6 +38,9 @@
             <textarea class="form-control" id="description" name="description" [(ngModel)]="draft.categoryDescription" required maxlength="2000" rows="2"></textarea></div>
           <div class="col-12"><label class="form-label" for="image">Recipe image (optional, JPG/PNG, max 2 MB)</label>
             <input class="form-control" id="image" type="file" accept="image/png,image/jpeg" (change)="chooseImage($event)"></div>
+          <div class="col-sm-4"><label class="form-label" for="servings">Servings</label><input id="servings" class="form-control" type="number" min="1" max="50" name="servings" [(ngModel)]="draft.servings"></div>
+          <div class="col-sm-4"><label class="form-label" for="prepMinutes">Prep (minutes)</label><input id="prepMinutes" class="form-control" type="number" min="0" max="1440" name="prepMinutes" [(ngModel)]="draft.prepMinutes"></div>
+          <div class="col-sm-4"><label class="form-label" for="cookMinutes">Cook (minutes)</label><input id="cookMinutes" class="form-control" type="number" min="0" max="1440" name="cookMinutes" [(ngModel)]="draft.cookMinutes"></div>
           <div class="col-12"><label><input type="checkbox" name="published" [(ngModel)]="draft.published"> Publish publicly (uncheck to keep as draft)</label></div>
         </div>
         <h4 class="h6 mt-4">Ingredients</h4>
@@ -91,19 +96,36 @@
             <h3 class="h5">{{recipe.title}}</h3><span class="badge bg-secondary">{{recipe.category}}</span>
           </div>
           <p>{{recipe.recipeDescription}}</p><span *ngIf="!recipe.published" class="badge bg-warning text-dark mb-2">Draft</span>
-          <h4 class="h6">Ingredients</h4>
-          <ul><li *ngFor="let ingredient of recipe.recipeIngredientList">{{ingredient.name}} — {{ingredient.ingredientQuantity}}</li></ul>
+          <p class="small text-muted">Prep {{recipe.prepMinutes}} min · Cook {{recipe.cookMinutes}} min</p>
+          <label class="small">Servings <input type="number" class="form-control form-control-sm" style="width:80px" [ngModel]="displayServings[recipe.id] || recipe.servings" (ngModelChange)="changeServings(recipe,$event)" min="1" max="50"></label>
+          <h4 class="h6 mt-2">Ingredients</h4>
+          <ul><li *ngFor="let ingredient of recipe.recipeIngredientList">{{ingredient.name}} — {{amount(recipe, ingredient.ingredientQuantity)}}</li></ul>
           <h4 class="h6">Steps</h4>
           <ol><li *ngFor="let step of recipe.recipeSteps"><strong>{{step.headline}}:</strong> {{step.description}}</li></ol>
         </div>
         <div class="card-footer d-flex flex-wrap gap-2">
           <button class="btn btn-sm" [class.btn-danger]="favoriteIds.has(recipe.id)" [class.btn-outline-danger]="!favoriteIds.has(recipe.id)" (click)="toggleFavorite(recipe)">
             {{favoriteIds.has(recipe.id) ? '♥ Saved' : '♡ Favorite'}}</button>
-          <button class="btn btn-sm" [class.btn-success]="selectedForShopping.has(recipe.id)" [class.btn-outline-success]="!selectedForShopping.has(recipe.id)" (click)="toggleShopping(recipe)">Shopping list</button>
+          <button class="btn btn-sm btn-outline-success" (click)="toggleShopping(recipe)">+ Shopping list</button>
+          <button class="btn btn-sm btn-outline-dark" (click)="openReviews(recipe)">Ratings</button>
           <ng-container *ngIf="recipe.userId === userId">
             <button class="btn btn-sm btn-outline-primary" (click)="openEdit(recipe)">Edit</button>
             <button class="btn btn-sm btn-outline-danger" (click)="remove(recipe)">Delete</button>
           </ng-container>
+        </div>
+        <div class="card-body border-top" *ngIf="openReviewId === recipe.id">
+          <h4 class="h6">Ratings & reviews</h4>
+          <div class="mb-2" *ngFor="let review of reviews[recipe.id] || []">
+            <strong>{{review.rating}}/5</strong> — {{review.comment}}
+            <small *ngIf="review.userId === userId">(yours)</small>
+          </div>
+          <label class="form-label" for="rating-{{recipe.id}}">Your rating</label>
+          <select class="form-select mb-2" [id]="'rating-' + recipe.id" [(ngModel)]="reviewStars">
+            <option [ngValue]="1">1 star</option><option [ngValue]="2">2 stars</option><option [ngValue]="3">3 stars</option><option [ngValue]="4">4 stars</option><option [ngValue]="5">5 stars</option>
+          </select>
+          <textarea class="form-control mb-2" [(ngModel)]="reviewComment" maxlength="1000" placeholder="Review (optional)" aria-label="Review"></textarea>
+          <button class="btn btn-sm btn-dark me-2" (click)="rate(recipe)">Save rating</button>
+          <button class="btn btn-sm btn-outline-danger" (click)="removeMyReview(recipe)">Remove my rating</button>
         </div>
       </article>
     </div>
@@ -113,15 +135,41 @@
     <span>Page {{page+1}} of {{totalPages || 1}} ({{totalElements}} recipes)</span>
     <button class="btn btn-outline-dark" (click)="goToPage(page+1)" [disabled]="page+1>=totalPages || busy">Next</button>
   </div>
+
   <section *ngIf="activeTab === 'shopping'">
-    <h3 class="h5">Your shopping list</h3>
-    <p>Choose recipes using their Shopping list buttons in Discover, My recipes, or Favorites. Duplicate ingredients are grouped; quantities remain listed separately so units are not mixed.</p>
-    <p *ngIf="!shoppingItems.length">No ingredients selected yet.</p>
+    <h3 class="h5">Saved shopping list</h3>
+    <p>Add ingredients using the Shopping list button on any recipe. Checked items and quantities persist in MySQL.</p>
+    <p *ngIf="!shoppingItems.length">No ingredients yet.</p>
     <ul class="list-group">
-      <li class="list-group-item" *ngFor="let item of shoppingItems">
-        <label><input type="checkbox" [(ngModel)]="item.checked">
+      <li class="list-group-item d-flex align-items-center justify-content-between" *ngFor="let item of shoppingItems; let i = index">
+        <label><input type="checkbox" [(ngModel)]="item.checked" (change)="saveShoppingList()">
           <span [class.text-decoration-line-through]="item.checked">{{item.name}} — {{item.quantity}}</span>
-        </label>
+        </label><button class="btn btn-sm btn-outline-danger" (click)="removeShoppingItem(i)">Remove</button>
+      </li>
+    </ul>
+  </section>
+  <section *ngIf="activeTab === 'planner'">
+    <h3 class="h5">Weekly meal planner</h3>
+    <p>Choose a start date to view a seven-day period. Add recipes from your currently loaded page.</p>
+    <div class="row g-2 align-items-end mb-3">
+      <div class="col-sm-3"><label class="form-label" for="planDay">Day / start date</label>
+        <input id="planDay" class="form-control" type="date" [(ngModel)]="planDay" (change)="loadPlan()"></div>
+      <div class="col-sm-3"><label class="form-label" for="planMeal">Meal</label>
+        <select id="planMeal" class="form-select" [(ngModel)]="planMeal">
+          <option value="BREAKFAST">Breakfast</option><option value="LUNCH">Lunch</option><option value="DINNER">Dinner</option>
+        </select></div>
+      <div class="col-sm-4"><label class="form-label" for="planRecipe">Recipe</label>
+        <select id="planRecipe" class="form-select" [(ngModel)]="planRecipeId">
+          <option [ngValue]="null">Choose recipe</option>
+          <option *ngFor="let recipe of recipes" [ngValue]="recipe.id">{{recipe.title}}</option>
+        </select></div>
+      <div class="col-sm-2"><button class="btn btn-dark w-100" (click)="assignPlan()">Add meal</button></div>
+    </div>
+    <p *ngIf="!plans.length">No meals scheduled in this period.</p>
+    <ul class="list-group">
+      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let plan of plans">
+        <span>{{plan.day}} · {{plan.meal}} — {{plan.recipeTitle}}</span>
+        <button class="btn btn-sm btn-outline-danger" (click)="removePlan(plan)">Remove</button>
       </li>
     </ul>
   </section>

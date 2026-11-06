@@ -20,6 +20,9 @@ export interface Recipe {
   recipeDescription: string;
   published: boolean;
   hasImage: boolean;
+  servings: number;
+  prepMinutes: number;
+  cookMinutes: number;
   recipeIngredientList: Ingredient[];
   recipeSteps: Step[];
 }
@@ -28,6 +31,9 @@ export interface RecipeForm {
   category: string;
   categoryDescription: string;
   published: boolean;
+  servings: number;
+  prepMinutes: number;
+  cookMinutes: number;
   recipeIngredientList: Ingredient[];
   recipeStepsList: Step[];
 }

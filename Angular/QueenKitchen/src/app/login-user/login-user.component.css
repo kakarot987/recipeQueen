@@ -4,3 +4,5 @@
 .recipe-photo { max-height: 210px; object-fit: cover; }
 .card { overflow: hidden; }
 .card-footer { background: white; }
+
+.profile-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 2px solid white; }

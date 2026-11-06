@@ -18,6 +18,9 @@ public class RequestRecipeBody {
     @NotEmpty @Valid
     private List<RecipeSteps> recipeStepsList = new ArrayList<>();
     private boolean published = true;
+    @Min(1) @Max(50) private int servings = 2;
+    @Min(0) @Max(1440) private int prepMinutes = 10;
+    @Min(0) @Max(1440) private int cookMinutes = 20;
 
     public String getTitle() { return title; }
     public void setTitle(String value) { title = value; }
@@ -29,6 +32,12 @@ public class RequestRecipeBody {
     public void setRecipeIngredientList(List<RecipeIngredient> value) { recipeIngredientList = value; }
     public List<RecipeSteps> getRecipeStepsList() { return recipeStepsList; }
     public void setRecipeStepsList(List<RecipeSteps> value) { recipeStepsList = value; }
+    public int getServings() { return servings; }
+    public void setServings(int value) { servings = value; }
+    public int getPrepMinutes() { return prepMinutes; }
+    public void setPrepMinutes(int value) { prepMinutes = value; }
+    public int getCookMinutes() { return cookMinutes; }
+    public void setCookMinutes(int value) { cookMinutes = value; }
     public boolean isPublished() { return published; }
     public void setPublished(boolean value) { published = value; }
 }

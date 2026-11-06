@@ -12,6 +12,7 @@ public class RecipeView {
     public final String recipeDescription;
     public final boolean published;
     public final boolean hasImage;
+    public final int servings, prepMinutes, cookMinutes;
     public final List<RecipeIngredient> recipeIngredientList;
     public final List<RecipeSteps> recipeSteps;
     public RecipeView(Recipe recipe) {
@@ -22,6 +23,7 @@ public class RecipeView {
         recipeDescription = recipe.getRecipeDescription();
         published = recipe.isPublished();
         hasImage = recipe.getImageContentType() != null;
+        servings = recipe.getServings(); prepMinutes = recipe.getPrepMinutes(); cookMinutes = recipe.getCookMinutes();
         recipeIngredientList = new ArrayList<>(recipe.getRecipeIngredientList());
         recipeSteps = new ArrayList<>(recipe.getRecipeSteps());
     }
