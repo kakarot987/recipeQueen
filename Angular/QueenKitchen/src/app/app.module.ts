@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { NgModule, provideZoneChangeDetection } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -12,7 +12,8 @@ import { HomeComponent } from './home/home.component';
 @NgModule({
   declarations: [AppComponent, LoginUserComponent, HomeComponent],
   imports: [BrowserModule, AppRoutingModule, FormsModule, ReactiveFormsModule, HttpClientModule],
-  providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],
+  // This migration retains imperative RxJS subscriptions; opt into zone-driven change detection.
+  providers: [provideZoneChangeDetection(), { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],
   bootstrap: [AppComponent]
 })
 export class AppModule {}
