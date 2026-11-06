@@ -105,6 +105,11 @@ jobs:
           npm install --no-save --legacy-peer-deps @playwright/test@1.56.1
           npx playwright install --with-deps chromium
           npx playwright test
+      - name: Print backend and frontend diagnostics on failure
+        if: failure()
+        run: |
+          docker compose -f QueensKitchenSpringBoot/docker-compose.yml logs --tail=120 || true
+          tail -n 120 /tmp/angular.log || true
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
