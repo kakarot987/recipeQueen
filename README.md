@@ -11,6 +11,8 @@ A Spring Boot 2.5 + Java 11 + MySQL 8 recipe API with an Angular 13 frontend.
 
 **Prerequisites:** Docker with Compose, Java 11, Node.js 16 (legacy Angular 13), npm.
 
+The Angular lockfile currently has an older ng-bootstrap peer dependency. The project-local `.npmrc` uses `legacy-peer-deps=true` as a **temporary compatibility measure**, not a substitute for upgrading Angular and ng-bootstrap together.
+
 1. From `QueensKitchenSpringBoot/`, copy `.env.example` to `.env` and replace *all* placeholder secrets.
 2. Run `./gradlew clean bootJar` (Windows: `gradlew.bat clean bootJar`).
 3. Run `docker compose up --build -d` from the same backend directory.
