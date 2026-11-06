@@ -1,0 +1,54 @@
+name: Verify backend and frontend
+on:
+  push:
+    branches: ["feature/**"]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: recipedatabase
+          MYSQL_USER: recipe
+          MYSQL_PASSWORD: local-ci-password
+          MYSQL_ROOT_PASSWORD: local-ci-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -plocal-ci-root-password --silent"
+          --health-interval=10s --health-timeout=5s --health-retries=15
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/recipedatabase?useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: recipe
+      DB_PASSWORD: local-ci-password
+      JWT_SECRET: local-ci-only-jwt-signing-key-of-at-least-64-characters-change-in-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test backend
+        working-directory: QueensKitchenSpringBoot
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test bootJar --no-daemon
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+          cache: npm
+          cache-dependency-path: Angular/QueenKitchen/package-lock.json
+      - name: Install and build frontend
+        working-directory: Angular/QueenKitchen
+        run: |
+          npm ci
+          npm run build

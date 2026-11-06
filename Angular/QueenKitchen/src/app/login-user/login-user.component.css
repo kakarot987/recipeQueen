@@ -1,0 +1,6 @@
+:host { display: block; background: #fbf8f1; min-height: 100vh; }
+.nav-pills .nav-link { color: #252525; border: 1px solid #dee2e6; }
+.nav-pills .nav-link.active { color: #fff; background: #212529; }
+.recipe-photo { max-height: 210px; object-fit: cover; }
+.card { overflow: hidden; }
+.card-footer { background: white; }
