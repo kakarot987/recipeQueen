@@ -74,4 +74,55 @@ class RecipeApiIntegrationTest {
         mvc.perform(get("/api/recipes").header("Authorization",token)
             .param("page","-1")).andExpect(status().isBadRequest());
     }
+
+    @Test void groceriesPlannerRatingsAndRecipeMetadata() throws Exception {
+        String token=signupAndToken("planner");
+        String stranger=signupAndToken("outsider");
+        String body="{\"title\":\"Breakfast oats\",\"category\":\"veg\",\"categoryDescription\":\"Healthy breakfast\","
+            +"\"servings\":4,\"prepMinutes\":5,\"cookMinutes\":10,\"published\":true,"
+            +"\"recipeIngredientList\":[{\"name\":\"Oats\",\"ingredientQuantity\":\"2 cups\"}],"
+            +"\"recipeStepsList\":[{\"number\":\"1\",\"headline\":\"Cook\",\"description\":\"Heat gently\"}]}";
+        MvcResult created=mvc.perform(post("/api/recipes").header("Authorization",token)
+            .contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.servings").value(4))
+            .andExpect(jsonPath("$.prepMinutes").value(5))
+            .andReturn();
+        long id=mapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+
+        String items="[{\"name\":\"Oats\",\"quantity\":\"2 cups\",\"checked\":true}]";
+        mvc.perform(put("/api/shopping-list").header("Authorization",token)
+            .contentType(MediaType.APPLICATION_JSON).content(items))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].checked").value(true));
+        mvc.perform(get("/api/shopping-list").header("Authorization",token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].name").value("Oats"));
+        mvc.perform(get("/api/shopping-list").header("Authorization",stranger))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+
+        mvc.perform(put("/api/meal-plan/2027-02-01/BREAKFAST").header("Authorization",token)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"recipeId\":" + id + "}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.recipeId").value(id));
+        mvc.perform(get("/api/meal-plan").header("Authorization",token)
+            .param("start","2027-02-01"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].recipeTitle").value("Breakfast oats"));
+        mvc.perform(get("/api/meal-plan").header("Authorization",stranger)
+            .param("start","2027-02-01"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+
+        mvc.perform(put("/api/recipes/"+id+"/reviews/mine").header("Authorization",stranger)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"rating\":5,\"comment\":\"Delicious\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.rating").value(5));
+        mvc.perform(get("/api/recipes/"+id+"/reviews").header("Authorization",token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].comment").value("Delicious"));
+        mvc.perform(put("/api/recipes/"+id+"/reviews/mine").header("Authorization",stranger)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"rating\":6}"))
+            .andExpect(status().isBadRequest());
+
+        mvc.perform(delete("/api/recipes/"+id).header("Authorization",token))
+            .andExpect(status().isNoContent());
+        mvc.perform(get("/api/meal-plan").header("Authorization",token)
+            .param("start","2027-02-01")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
+    }
+
 }
