@@ -1,6 +1,6 @@
 # Queen's Kitchen / RecipeQueen
 
-A Spring Boot 2.5 + Java 11 + MySQL 8 recipe API with an Angular 13 frontend.
+A Spring Boot 4.1 + Java 21 + MySQL 8 recipe API with an Angular 22 frontend.
 
 > **Security notice:** This repository previously contained hardcoded database passwords and a JWT secret.
 > Treat those values as compromised, rotate them in every environment where they were used,
@@ -9,14 +9,14 @@ A Spring Boot 2.5 + Java 11 + MySQL 8 recipe API with an Angular 13 frontend.
 
 ## Quick start
 
-**Prerequisites:** Docker with Compose, Java 11, Node.js 16 (legacy Angular 13), npm.
+**Prerequisites:** Docker with Compose, Java 21, Node.js 22.22+, npm.
 
-The Angular lockfile currently has an older ng-bootstrap peer dependency. The project-local `.npmrc` uses `legacy-peer-deps=true` as a **temporary compatibility measure**, not a substitute for upgrading Angular and ng-bootstrap together.
+Angular 22 uses its own dependency lockfile. The package manifest and lockfile must be kept in sync. Do not upgrade only one of them.
 
 1. From `QueensKitchenSpringBoot/`, copy `.env.example` to `.env` and replace *all* placeholder secrets.
 2. Run `./gradlew clean bootJar` (Windows: `gradlew.bat clean bootJar`).
 3. Run `docker compose up --build -d` from the same backend directory.
-4. Run `cd Angular/QueenKitchen && npm ci && npm start` from the repository root.
+4. Run `cd Angular/QueenKitchen && npm install && npm start` from the repository root.
 5. Visit http://localhost:4200, register, sign in, publish a recipe, and try searching.
 
 **Alternative backend without Docker:** Start MySQL locally and export
@@ -24,9 +24,7 @@ The Angular lockfile currently has an older ng-bootstrap peer dependency. The pr
 The default API port is 5000. The MySQL Compose port exposed to the host is 3307;
 inside Compose the API connects to `mysql_db:3306`.
 
-For development only, the schema is currently managed with `spring.jpa.hibernate.ddl-auto=update`.
-Before production, replace this with reviewed Flyway migrations and `validate`.
-Do not deploy this legacy dependency stack until dependencies and security settings are reviewed and upgraded.
+Flyway owns schema creation and upgrades; Hibernate is set to `ddl-auto=validate`. **Back up an existing database and test migration on a staging restore before first launch.** See `docs/DEPLOYMENT.md` for deployment, backups and TLS.
 
 ## Features
 
@@ -35,7 +33,11 @@ Do not deploy this legacy dependency stack until dependencies and security setti
 - Search by title and ingredients, filter by category, paginate results.
 - Add JPEG/PNG recipe photos (2 MB maximum), stored in MySQL.
 - Favorite and unfavorite published recipes, with persistent database-backed favorites.
-- Build a session shopping list from selected recipes.
+- Persist shopping lists and completion status in MySQL.
+- Plan meals over seven days, rate and review recipes, and upload a profile image.
+- Scale simple numeric ingredient quantities for different serving counts.
+- Browse the OpenAPI/Swagger documentation at `/swagger-ui/index.html` (disabled in production).
+- Review the Playwright E2E smoke test in `Angular/QueenKitchen/e2e/`.
 - Responsive Angular dashboard and form validation.
 
 Recipe editing and deletion require ownership according to the authenticated token.
@@ -90,9 +92,17 @@ Example recipe request:
 
 ## Known limitations and next steps
 
-- The shopping list lives in browser component state and does not survive a refresh.
+- Shopping lists and favorites persist in MySQL. Browser E2E tests cover persistence after reload.
 - Images are stored as database BLOBs; object storage is preferable at scale.
-- The existing Spring Boot and Angular framework versions need planned upgrades.
-- OAuth, ratings, meal planning and nutritional data are not yet implemented.
-- Database migrations, more integration/E2E tests, rate limiting, monitoring and deployment hardening remain future work.
+- Dependency security updates still require ongoing maintenance and review.
+- OAuth login and nutritional calculations are not implemented; ratings and meal planning are available.
+- Database migrations, integration/E2E tests, health checks, reverse-proxy login rate limiting and deployment guidance are available. Additional production monitoring, security audits and infrastructure validation remain deployment responsibilities.
 - Do not rely on Angular route hiding for authorization; the backend checks ownership.
+
+## Development branches
+
+1. `feature/secure-recipes-and-discovery`: core recipe fixes (draft PR #1).
+2. `feature/platform-completion`: shopping list, planner, ratings, profiles, Flyway, API docs, CI and E2E (draft PR #2).
+3. `feature/framework-modernization`: separate Angular 22 / Spring Boot 4.1 upgrade; review its CI independently before merging.
+
+**Neither feature branch automatically deploys or merges into `main`.**
