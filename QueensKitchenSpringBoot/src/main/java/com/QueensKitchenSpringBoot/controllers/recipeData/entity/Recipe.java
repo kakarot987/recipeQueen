@@ -15,6 +15,9 @@ public class Recipe {
     @Column(nullable = false, length = 60) private String category;
     @Column(nullable = false, length = 2000) private String recipeDescription;
     @Column(nullable = false) private boolean published = true;
+    @Column(nullable = false) private int servings = 2;
+    @Column(nullable = false) private int prepMinutes = 10;
+    @Column(nullable = false) private int cookMinutes = 20;
     @Lob @Basic(fetch = FetchType.LAZY) private byte[] imageData;
     @Column(length = 30) private String imageContentType;
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -22,6 +25,12 @@ public class Recipe {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<RecipeSteps> recipeSteps = new ArrayList<>();
 
+    public int getServings() { return servings; }
+    public void setServings(int value) { servings = value; }
+    public int getPrepMinutes() { return prepMinutes; }
+    public void setPrepMinutes(int value) { prepMinutes = value; }
+    public int getCookMinutes() { return cookMinutes; }
+    public void setCookMinutes(int value) { cookMinutes = value; }
     public Long getId() { return id; }
     public void setId(Long value) { id = value; }
     public Long getUserId() { return userId; }
