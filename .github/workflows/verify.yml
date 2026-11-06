@@ -40,6 +40,8 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,6 +54,16 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run build
+      - name: Commit the reproducible Angular 22 lockfile
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/framework-modernization'
+        run: |
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name 'github-actions[bot]'
+          git add Angular/QueenKitchen/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: refresh Angular 22 dependency lockfile [skip ci]'
+            git push origin HEAD:feature/framework-modernization
+          fi
       - name: Capture upgraded dependency lockfile
         if: always()
         uses: actions/upload-artifact@v4
