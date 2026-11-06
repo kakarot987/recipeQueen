@@ -52,7 +52,7 @@ jobs:
       - name: Install and build frontend
         working-directory: Angular/QueenKitchen
         run: |
-          rm -f package-lock.json && npm install --no-audit --no-fund
+          npm install -g npm@11 && rm -f package-lock.json && npm install --no-audit --no-fund
           npm run build
   e2e:
     runs-on: ubuntu-latest
@@ -89,7 +89,7 @@ jobs:
       - name: Start Angular development server
         working-directory: Angular/QueenKitchen
         run: |
-          rm -f package-lock.json && npm install --no-audit --no-fund
+          npm install -g npm@11 && rm -f package-lock.json && npm install --no-audit --no-fund
           nohup npm start -- --host 127.0.0.1 > /tmp/angular.log 2>&1 &
           for i in $(seq 1 60); do
             curl -fsS http://127.0.0.1:4200 >/dev/null && break || sleep 3

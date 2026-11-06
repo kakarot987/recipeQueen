@@ -1,7 +1,7 @@
 FROM node:22.22.3-bookworm-slim AS build
 WORKDIR /app
 COPY package*.json .npmrc ./
-RUN rm -f package-lock.json && npm install --no-audit --no-fund
+RUN npm install -g npm@11 && rm -f package-lock.json && npm install --no-audit --no-fund
 COPY . .
 RUN npm run build
 
