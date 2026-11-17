@@ -1,44 +1,15 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
-const AUTH_API = 'http://localhost:5000/api/auth/';
-
-const httpOptions = {
-  headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-};
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-
-  isLoggedInOk : boolean;
-
-  constructor(private http: HttpClient) { 
-    this.isLoggedInOk = false;
-  }
-
-  login(username:string,password:string): Observable<any> {
-    return this.http.post(AUTH_API + 'signin', {
-      username: username,
-      password: password
-    }, httpOptions
-    );
+  constructor(private http: HttpClient) {}
+  login(username: string, password: string): Observable<any> {
+    return this.http.post(environment.apiUrl + '/auth/signin', { username, password });
   }
   register(username: string, email: string, password: string): Observable<any> {
-    return this.http.post(AUTH_API + 'signup', {
-      username,
-      email,
-      password,
-      role:["user"]
-    }, httpOptions);
+    return this.http.post(environment.apiUrl + '/auth/signup', { username, email, password });
   }
-
-  //UploadProfilePic()
-  getProfilePic(user_id :any) : Observable<any>{
-    return this.http.post(AUTH_API + 'getUserProfilePic',{
-      user_id
-    },httpOptions);
-  }
-
 }

@@ -1,0 +1,42 @@
+# Connect this container network only to a trusted TLS reverse proxy/load balancer.
+services:
+  mysql_db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: recipedatabase
+      MYSQL_USER: recipe
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+    volumes:
+      - recipe_prod_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  api_service:
+    build: ./QueensKitchenSpringBoot
+    restart: unless-stopped
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql_db:3306/recipedatabase?useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: recipe
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      APP_CORS_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+      API_DOCS_ENABLED: "false"
+    expose:
+      - "5000"
+  web:
+    build: ./Angular/QueenKitchen
+    restart: unless-stopped
+    depends_on:
+      - api_service
+    ports:
+      - "127.0.0.1:8080:80"
+
+volumes:
+  recipe_prod_data:

@@ -9,37 +9,41 @@ import com.QueensKitchenSpringBoot.controllers.Authentication.repository.UserRep
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 class AuthControllerSignupTests {
     @Test
-    void publicSignupIgnoresRequestedAdminRole() {
+    void publicSignupAlwaysAssignsUserRoleEvenWhenAdminRequested() {
         AuthController controller = new AuthController();
-        controller.userRepository = mock(UserRepository.class);
-        controller.roleRepository = mock(RoleRepository.class);
-        controller.encoder = mock(PasswordEncoder.class);
-        when(controller.roleRepository.findByName(ERole.ROLE_USER))
+        UserRepository users = mock(UserRepository.class);
+        RoleRepository roles = mock(RoleRepository.class);
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        ReflectionTestUtils.setField(controller, "userRepository", users);
+        ReflectionTestUtils.setField(controller, "roleRepository", roles);
+        ReflectionTestUtils.setField(controller, "encoder", encoder);
+        when(roles.findByName(ERole.ROLE_USER))
                 .thenReturn(Optional.of(new Role(ERole.ROLE_USER)));
-        when(controller.encoder.encode("password123")).thenReturn("encoded-password");
+        when(encoder.encode("password123")).thenReturn("hashed");
 
         SignupRequest request = new SignupRequest();
         request.setUsername("tester");
         request.setEmail("tester@example.invalid");
         request.setPassword("password123");
-        request.setRole(Set.of("admin", "mod"));
-        controller.registerUser(request);
+        request.setRole(new HashSet<>(Arrays.asList("admin", "mod")));
+        controller.signup(request);
 
-        ArgumentCaptor<User> captured = ArgumentCaptor.forClass(User.class);
-        verify(controller.userRepository).save(captured.capture());
-        assertEquals(Collections.singleton(ERole.ROLE_USER),
-                Collections.singleton(captured.getValue().getRoles().iterator().next().getName()));
-        assertEquals(1, captured.getValue().getRoles().size());
-        verify(controller.roleRepository, never()).findByName(ERole.ROLE_ADMIN);
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(users).save(saved.capture());
+        assertEquals(1, saved.getValue().getRoles().size());
+        assertEquals(ERole.ROLE_USER, saved.getValue().getRoles().iterator().next().getName());
+        verify(roles, never()).findByName(ERole.ROLE_ADMIN);
+        verify(roles, never()).findByName(ERole.ROLE_MODERATOR);
     }
 }
