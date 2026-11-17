@@ -18,6 +18,8 @@ jobs:
         working-directory: Angular/QueenKitchen
         run: |
           npm install -g npm@11
+          # The old lockfile pins mutually incompatible exact Angular peers.
+          rm package-lock.json
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Validate clean installation and production build
         working-directory: Angular/QueenKitchen
