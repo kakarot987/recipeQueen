@@ -28,7 +28,7 @@
     "@types/jasmine": "^5.1.0",
     "@types/node": "^22.15.0",
     "jasmine-core": "^5.9.0",
-    "typescript": "~6.0.0",
+    "typescript": "~7.0.2",
     "vitest": "^4.0.8",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.6"
