@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { RecipeService, Recipe, RecipeForm, Ingredient, Step } from '../service/recipe.service';
 import { PlannerService, ShoppingItem, MealPlanEntry, RecipeReview } from '../service/planner.service';
@@ -46,14 +46,17 @@ export class LoginUserComponent implements OnInit, OnDestroy {
   shoppingItems: ShoppingItem[] = [];
   selectedForShopping = new Set<number>();
 
-  constructor(private api: RecipeService, private planner: PlannerService, private tokens: TokenStorageService, private router: Router) {}
+  constructor(private api: RecipeService, private planner: PlannerService, private tokens: TokenStorageService, private router: Router, private cdr: ChangeDetectorRef) {}
   get username(): string { return this.tokens.getUser()?.username || 'Cook'; }
   get userId(): number { return this.tokens.getUser()?.id; }
   ngOnInit(): void {
     if (!this.tokens.getToken()) { this.router.navigate(['/home']); return; }
     this.loadFavorites();
     this.load();
-    this.planner.shopping().subscribe({ next: items => this.shoppingItems = items, error: () => this.error = 'Shopping list unavailable' });
+    this.planner.shopping().subscribe({
+      next: items => { this.shoppingItems = items; this.cdr.markForCheck(); },
+      error: () => { this.error = 'Shopping list unavailable'; this.cdr.markForCheck(); }
+    });
     this.loadProfile();
   }
   ngOnDestroy(): void {
@@ -80,8 +83,9 @@ export class LoginUserComponent implements OnInit, OnDestroy {
         this.totalElements = data.totalElements;
         this.busy = false;
         this.loadImages(this.recipes);
+        this.cdr.markForCheck();
       },
-      error: () => { this.busy = false; this.error = 'Unable to load recipes. Please sign in again if your session expired.'; }
+      error: () => { this.busy = false; this.error = 'Unable to load recipes. Please sign in again if your session expired.'; this.cdr.markForCheck(); }
     });
   }
   applySearch(): void { this.page = 0; this.load(); }
@@ -94,14 +98,15 @@ export class LoginUserComponent implements OnInit, OnDestroy {
       next: data => {
         this.favorites = data; this.favoriteIds = new Set(data.map(r => r.id));
         this.loadImages(data);
+        this.cdr.markForCheck();
       },
-      error: () => { this.error = 'Unable to load favorites.'; }
+      error: () => { this.error = 'Unable to load favorites.'; this.cdr.markForCheck(); }
     });
   }
   loadImages(recipes: Recipe[]): void {
     recipes.filter(recipe => recipe.hasImage && !this.imageUrls[recipe.id]).forEach(recipe => {
       this.api.image(recipe.id).subscribe({
-        next: blob => { if (blob.type.startsWith('image/')) this.imageUrls[recipe.id] = URL.createObjectURL(blob); },
+        next: blob => { if (blob.type.startsWith('image/')) this.imageUrls[recipe.id] = URL.createObjectURL(blob); this.cdr.markForCheck(); },
         error: () => { /* image is optional */ }
       });
     });
@@ -111,7 +116,7 @@ export class LoginUserComponent implements OnInit, OnDestroy {
     const action = wasFavorite ? this.api.unfavorite(recipe.id) : this.api.favorite(recipe.id);
     action.subscribe({
       next: () => this.loadFavorites(),
-      error: () => { this.error = 'Could not update favorite.'; }
+      error: () => { this.error = 'Could not update favorite.'; this.cdr.markForCheck(); }
     });
   }
   openCreate(): void {
@@ -160,11 +165,11 @@ export class LoginUserComponent implements OnInit, OnDestroy {
         if (this.pendingImage) {
           this.api.uploadImage(recipe.id, this.pendingImage).subscribe({
             next: () => this.saved(),
-            error: () => { this.saved(); this.error = 'Recipe saved, but image upload failed.'; }
+            error: () => { this.saved(); this.error = 'Recipe saved, but image upload failed.'; this.cdr.markForCheck(); }
           });
         } else this.saved();
       },
-      error: err => { this.saving = false; this.error = err.error?.message || 'Could not save recipe. Check the fields.'; }
+      error: err => { this.saving = false; this.error = err.error?.message || 'Could not save recipe. Check the fields.'; this.cdr.markForCheck(); }
     });
   }
   saved(): void {
@@ -172,12 +177,14 @@ export class LoginUserComponent implements OnInit, OnDestroy {
     Object.values(this.imageUrls).forEach(url => URL.revokeObjectURL(url));
     this.imageUrls = {};
     this.load(); this.loadFavorites();
+    // HTTP callbacks may fire outside a scheduled Angular render in Angular 22.
+    this.cdr.markForCheck();
   }
   remove(recipe: Recipe): void {
     if (!window.confirm('Delete "' + recipe.title + '" permanently?')) return;
     this.api.delete(recipe.id).subscribe({
-      next: () => { this.success = 'Recipe deleted.'; this.load(); this.loadFavorites(); },
-      error: () => { this.error = 'Delete failed.'; }
+      next: () => { this.success = 'Recipe deleted.'; this.load(); this.loadFavorites(); this.cdr.markForCheck(); },
+      error: () => { this.error = 'Delete failed.'; this.cdr.markForCheck(); }
     });
   }
 
@@ -192,6 +199,7 @@ export class LoginUserComponent implements OnInit, OnDestroy {
       next: image => {
         if (this.profileUrl) URL.revokeObjectURL(this.profileUrl);
         this.profileUrl = URL.createObjectURL(image);
+        this.cdr.markForCheck();
       },
       error: () => { /* no profile photo yet */ }
     });
@@ -204,8 +212,8 @@ export class LoginUserComponent implements OnInit, OnDestroy {
     }
     this.profileUploading = true;
     this.planner.uploadProfile(file).subscribe({
-      next: () => { this.profileUploading = false; this.loadProfile(); this.success = 'Profile photo updated'; },
-      error: () => { this.profileUploading = false; this.error = 'Profile photo upload failed'; }
+      next: () => { this.profileUploading = false; this.loadProfile(); this.success = 'Profile photo updated'; this.cdr.markForCheck(); },
+      error: () => { this.profileUploading = false; this.error = 'Profile photo upload failed'; this.cdr.markForCheck(); }
     });
   }
   openReviews(recipe: Recipe): void {
@@ -217,45 +225,46 @@ export class LoginUserComponent implements OnInit, OnDestroy {
       next: rows => { this.reviews[id] = rows; const mine = rows.find(r => r.userId === this.userId);
         if (mine) { this.reviewStars = mine.rating; this.reviewComment = mine.comment; }
         else { this.reviewStars = 5; this.reviewComment = ''; }
+        this.cdr.markForCheck();
       },
-      error: () => this.error = 'Could not load reviews'
+      error: () => { this.error = 'Could not load reviews'; this.cdr.markForCheck(); }
     });
   }
   rate(recipe: Recipe): void {
     this.planner.rate(recipe.id, this.reviewStars, this.reviewComment).subscribe({
       next: () => this.loadReviews(recipe.id),
-      error: () => this.error = 'Could not save your review'
+      error: () => { this.error = 'Could not save your review'; this.cdr.markForCheck(); }
     });
   }
   removeMyReview(recipe: Recipe): void {
     this.planner.removeReview(recipe.id).subscribe({
       next: () => this.loadReviews(recipe.id),
-      error: () => this.error = 'Could not remove review'
+      error: () => { this.error = 'Could not remove review'; this.cdr.markForCheck(); }
     });
   }
   loadPlan(): void {
     this.planner.week(this.planDay).subscribe({
-      next: entries => this.plans = entries,
-      error: () => this.error = 'Could not load meal plan'
+      next: entries => { this.plans = entries; this.cdr.markForCheck(); },
+      error: () => { this.error = 'Could not load meal plan'; this.cdr.markForCheck(); }
     });
   }
   assignPlan(): void {
     if (!this.planRecipeId) { this.error = 'Choose a recipe first'; return; }
     this.planner.plan(this.planDay, this.planMeal, this.planRecipeId).subscribe({
-      next: () => { this.success = 'Meal planned'; this.loadPlan(); },
-      error: () => this.error = 'Could not schedule this meal'
+      next: () => { this.success = 'Meal planned'; this.loadPlan(); this.cdr.markForCheck(); },
+      error: () => { this.error = 'Could not schedule this meal'; this.cdr.markForCheck(); }
     });
   }
   removePlan(item: MealPlanEntry): void {
     this.planner.unplan(item.day, item.meal).subscribe({
-      next: () => this.loadPlan(),
-      error: () => this.error = 'Could not remove this meal'
+      next: () => { this.loadPlan(); this.cdr.markForCheck(); },
+      error: () => { this.error = 'Could not remove this meal'; this.cdr.markForCheck(); }
     });
   }
   saveShoppingList(): void {
     this.planner.saveShopping(this.shoppingItems).subscribe({
-      next: items => this.shoppingItems = items,
-      error: () => this.error = 'Could not save shopping list'
+      next: items => { this.shoppingItems = items; this.cdr.markForCheck(); },
+      error: () => { this.error = 'Could not save shopping list'; this.cdr.markForCheck(); }
     });
   }
 
