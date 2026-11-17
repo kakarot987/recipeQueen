@@ -79,40 +79,14 @@ public class AuthController {
 		List<String> roles = userDetails.getAuthorities().stream()
 				.map(item -> item.getAuthority())
 				.collect(Collectors.toList());
-		List<JwtResponse> users = userDetailsService.getUser().map(user ->{
-			return new JwtResponse(jwt,
-					user.getId(),
-					user.getUsername(),
-					user.getEmail(),
-					roles);
-		}).collect(Collectors.toList());
-		System.out.print(roles);
-		Iterator<String> iterator  = roles.iterator();
-		while(iterator.hasNext()) {
-			String element = iterator.next();
-			if(element == "ROLE_ADMIN") {
-				System.out.print("Admin");
-				return ResponseEntity.status(HttpStatus.OK).body(users);
-			}
-			else if(element == "ROLE_USER")
-			{
-				return ResponseEntity.ok(new JwtResponse(jwt,
-						userDetails.getId(),
-						userDetails.getUsername(),
-						userDetails.getEmail(),
-						roles));
-			}
-		}
-		return null;
+		// A login response must describe only the authenticated principal.
+		return ResponseEntity.ok(new JwtResponse(jwt,
+				userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(), roles));
 	}
 
 
 	@PostMapping("/signup")
 	public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-		System.out.println("Values here are ----"+signUpRequest.getEmail() + "" +
-				signUpRequest.getPassword() + "" +
-				signUpRequest.getRole() + "" +
-				signUpRequest.getUsername());
 		if (userRepository.existsByUsername(signUpRequest.getUsername())) {
 			return ResponseEntity
 					.badRequest()
@@ -131,35 +105,11 @@ public class AuthController {
 							 encoder.encode(signUpRequest.getPassword())
 							 );
 
-		Set<String> strRoles = signUpRequest.getRole();
+		// Public registration must never grant caller-requested privileged roles.
+		Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+				.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
 		Set<Role> roles = new HashSet<>();
-
-		if (strRoles == null) {
-			Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-					.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-			roles.add(userRole);
-		} else {
-			strRoles.forEach(role -> {
-				switch (role) {
-				case "admin":
-					Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-							.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-					roles.add(adminRole);
-
-					break;
-				case "mod":
-					Role modRole = roleRepository.findByName(ERole.ROLE_MODERATOR)
-							.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-					roles.add(modRole);
-
-					break;
-				default:
-					Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-							.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-					roles.add(userRole);
-				}
-			});
-		}
+		roles.add(userRole);
 
 		user.setRoles(roles);
 		userRepository.save(user);
@@ -230,14 +180,20 @@ public class AuthController {
 	RecipeService recipeService;
 
 	@RequestMapping("/addRecipe")
-	public ResponseEntity<?> addRecipe(@RequestBody RequestRecipeBody requestRecipeBody){
+	public ResponseEntity<?> addRecipe(@RequestBody RequestRecipeBody requestRecipeBody, Authentication authentication){
+		Long currentUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+		if (requestRecipeBody == null || requestRecipeBody.getUserId() == null || !currentUserId.equals(requestRecipeBody.getUserId())) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Cannot create recipes for another user");
+		}
 		return recipeService.saveRecipe(requestRecipeBody);
 	}
 
 	@PostMapping ("/getRecipe/{userId}")
-	public ResponseEntity<?> getRecipe(@PathVariable("userId") String userId){
-		System.out.println(userId);
-		Long userIdLong = Long.valueOf(userId);
-		return recipeService.getRecipe(userIdLong);
+	public ResponseEntity<?> getRecipe(@PathVariable("userId") Long userId, Authentication authentication){
+		Long currentUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+		if (!currentUserId.equals(userId)) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Cannot view another user\'s recipes");
+		}
+		return recipeService.getRecipe(userId);
 	}
 }
