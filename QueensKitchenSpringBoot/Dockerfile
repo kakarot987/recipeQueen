@@ -1,11 +1,11 @@
-FROM openjdk:11
+# Build the application from source rather than relying on an untracked local JAR.
+FROM gradle:7.6.4-jdk11 AS builder
+WORKDIR /app
+COPY . .
+RUN gradle --no-daemon bootJar
 
-LABEL maintainer="mayankit3@gmail.com"
-
-VOLUME /main-app
-
-ADD build/libs/QueensKitchenSpringBoot-0.0.1-SNAPSHOT.jar app.jar
-
+FROM eclipse-temurin:11-jre
+WORKDIR /app
+COPY --from=builder /app/build/libs/*.jar /app/app.jar
 EXPOSE 5000
-
-ENTRYPOINT ["java", "-jar","/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
