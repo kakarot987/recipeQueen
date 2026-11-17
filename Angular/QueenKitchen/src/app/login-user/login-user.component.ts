@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { RecipeService, Recipe, RecipeForm, Ingredient, Step } from '../service/recipe.service';
+import { PlannerService, ShoppingItem, MealPlanEntry, RecipeReview } from '../service/planner.service';
+import { scaledAmount } from '../service/servings.util';
 import { TokenStorageService } from '../service/token-storage.service';
 
 @Component({
@@ -13,7 +15,18 @@ export class LoginUserComponent implements OnInit, OnDestroy {
   favoriteIds = new Set<number>();
   favorites: Recipe[] = [];
   imageUrls: Record<number, string> = {};
-  activeTab: 'discover' | 'mine' | 'favorites' | 'shopping' = 'discover';
+  activeTab: 'discover' | 'mine' | 'favorites' | 'shopping' | 'planner' = 'discover';
+  planDay = new Date().toISOString().slice(0, 10);
+  planMeal = 'BREAKFAST';
+  planRecipeId: number | null = null;
+  plans: MealPlanEntry[] = [];
+  reviews: Record<number, RecipeReview[]> = {};
+  openReviewId: number | null = null;
+  reviewStars = 5;
+  reviewComment = '';
+  displayServings: Record<number, number> = {};
+  profileUrl: string | null = null;
+  profileUploading = false;
   search = '';
   ingredient = '';
   category = '';
@@ -30,27 +43,31 @@ export class LoginUserComponent implements OnInit, OnDestroy {
   newIngredient: Ingredient = { name: '', ingredientQuantity: '' };
   newStep: Step = { number: '', headline: '', description: '' };
   pendingImage: File | null = null;
-  shoppingItems: { name: string; quantity: string; checked: boolean }[] = [];
+  shoppingItems: ShoppingItem[] = [];
   selectedForShopping = new Set<number>();
 
-  constructor(private api: RecipeService, private tokens: TokenStorageService, private router: Router) {}
+  constructor(private api: RecipeService, private planner: PlannerService, private tokens: TokenStorageService, private router: Router) {}
   get username(): string { return this.tokens.getUser()?.username || 'Cook'; }
   get userId(): number { return this.tokens.getUser()?.id; }
   ngOnInit(): void {
     if (!this.tokens.getToken()) { this.router.navigate(['/home']); return; }
     this.loadFavorites();
     this.load();
+    this.planner.shopping().subscribe({ next: items => this.shoppingItems = items, error: () => this.error = 'Shopping list unavailable' });
+    this.loadProfile();
   }
   ngOnDestroy(): void {
     Object.values(this.imageUrls).forEach(url => URL.revokeObjectURL(url));
+    if (this.profileUrl) URL.revokeObjectURL(this.profileUrl);
   }
   emptyForm(): RecipeForm {
-    return { title: '', category: 'veg', categoryDescription: '', published: true,
+    return { title: '', category: 'veg', categoryDescription: '', published: true, servings: 2, prepMinutes: 10, cookMinutes: 20,
       recipeIngredientList: [], recipeStepsList: [] };
   }
-  setTab(tab: 'discover' | 'mine' | 'favorites' | 'shopping'): void {
+  setTab(tab: 'discover' | 'mine' | 'favorites' | 'shopping' | 'planner'): void {
     this.activeTab = tab; this.page = 0; this.error = ''; this.success = '';
     if (tab === 'favorites') this.loadFavorites();
+    else if (tab === 'planner') this.loadPlan();
     else if (tab !== 'shopping') this.load();
   }
   load(): void {
@@ -105,7 +122,7 @@ export class LoginUserComponent implements OnInit, OnDestroy {
     this.editingId = recipe.id;
     this.draft = {
       title: recipe.title, category: recipe.category, categoryDescription: recipe.recipeDescription,
-      published: recipe.published,
+      published: recipe.published, servings: recipe.servings, prepMinutes: recipe.prepMinutes, cookMinutes: recipe.cookMinutes,
       recipeIngredientList: recipe.recipeIngredientList.map(i => ({ name: i.name, ingredientQuantity: i.ingredientQuantity })),
       recipeStepsList: recipe.recipeSteps.map(s => ({ number: s.number, headline: s.headline, description: s.description }))
     };
@@ -163,26 +180,98 @@ export class LoginUserComponent implements OnInit, OnDestroy {
       error: () => { this.error = 'Delete failed.'; }
     });
   }
-  toggleShopping(recipe: Recipe): void {
-    if (this.selectedForShopping.has(recipe.id)) this.selectedForShopping.delete(recipe.id);
-    else this.selectedForShopping.add(recipe.id);
-    this.buildShoppingList();
+
+  changeServings(recipe: Recipe, value: number): void {
+    this.displayServings[recipe.id] = Math.min(50, Math.max(1, Number(value) || recipe.servings));
   }
-  buildShoppingList(): void {
-    const all = [...this.recipes, ...this.favorites];
-    const unique = new Map<number, Recipe>();
-    all.forEach(recipe => unique.set(recipe.id, recipe));
-    const lines = new Map<string, { name: string; quantity: string; checked: boolean }>();
-    unique.forEach(recipe => {
-      if (!this.selectedForShopping.has(recipe.id)) return;
-      recipe.recipeIngredientList.forEach(i => {
-        const key = i.name.trim().toLowerCase();
-        const existing = lines.get(key);
-        if (existing) existing.quantity += ', ' + i.ingredientQuantity;
-        else lines.set(key, { name: i.name, quantity: i.ingredientQuantity, checked: false });
-      });
+  amount(recipe: Recipe, quantity: string): string {
+    return scaledAmount(quantity, recipe.servings || 2, this.displayServings[recipe.id] || recipe.servings || 2);
+  }
+  loadProfile(): void {
+    this.planner.profile().subscribe({
+      next: image => {
+        if (this.profileUrl) URL.revokeObjectURL(this.profileUrl);
+        this.profileUrl = URL.createObjectURL(image);
+      },
+      error: () => { /* no profile photo yet */ }
     });
-    this.shoppingItems = Array.from(lines.values());
+  }
+  uploadProfile(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 2097152) {
+      this.error = 'Profile photo must be PNG/JPEG under 2MB'; return;
+    }
+    this.profileUploading = true;
+    this.planner.uploadProfile(file).subscribe({
+      next: () => { this.profileUploading = false; this.loadProfile(); this.success = 'Profile photo updated'; },
+      error: () => { this.profileUploading = false; this.error = 'Profile photo upload failed'; }
+    });
+  }
+  openReviews(recipe: Recipe): void {
+    this.openReviewId = this.openReviewId === recipe.id ? null : recipe.id;
+    if (this.openReviewId !== null) this.loadReviews(recipe.id);
+  }
+  loadReviews(id: number): void {
+    this.planner.reviews(id).subscribe({
+      next: rows => { this.reviews[id] = rows; const mine = rows.find(r => r.userId === this.userId);
+        if (mine) { this.reviewStars = mine.rating; this.reviewComment = mine.comment; }
+        else { this.reviewStars = 5; this.reviewComment = ''; }
+      },
+      error: () => this.error = 'Could not load reviews'
+    });
+  }
+  rate(recipe: Recipe): void {
+    this.planner.rate(recipe.id, this.reviewStars, this.reviewComment).subscribe({
+      next: () => this.loadReviews(recipe.id),
+      error: () => this.error = 'Could not save your review'
+    });
+  }
+  removeMyReview(recipe: Recipe): void {
+    this.planner.removeReview(recipe.id).subscribe({
+      next: () => this.loadReviews(recipe.id),
+      error: () => this.error = 'Could not remove review'
+    });
+  }
+  loadPlan(): void {
+    this.planner.week(this.planDay).subscribe({
+      next: entries => this.plans = entries,
+      error: () => this.error = 'Could not load meal plan'
+    });
+  }
+  assignPlan(): void {
+    if (!this.planRecipeId) { this.error = 'Choose a recipe first'; return; }
+    this.planner.plan(this.planDay, this.planMeal, this.planRecipeId).subscribe({
+      next: () => { this.success = 'Meal planned'; this.loadPlan(); },
+      error: () => this.error = 'Could not schedule this meal'
+    });
+  }
+  removePlan(item: MealPlanEntry): void {
+    this.planner.unplan(item.day, item.meal).subscribe({
+      next: () => this.loadPlan(),
+      error: () => this.error = 'Could not remove this meal'
+    });
+  }
+  saveShoppingList(): void {
+    this.planner.saveShopping(this.shoppingItems).subscribe({
+      next: items => this.shoppingItems = items,
+      error: () => this.error = 'Could not save shopping list'
+    });
+  }
+
+  toggleShopping(recipe: Recipe): void {
+    this.selectedForShopping.add(recipe.id);
+    recipe.recipeIngredientList.forEach(ingredient => {
+      const existing = this.shoppingItems.find(i => i.name.toLowerCase() === ingredient.name.toLowerCase());
+      if (existing) existing.quantity += ', ' + ingredient.ingredientQuantity;
+      else this.shoppingItems.push({ name: ingredient.name, quantity: ingredient.ingredientQuantity, checked: false });
+    });
+    this.saveShoppingList();
+    this.success = 'Ingredients added to saved shopping list';
+  }
+  removeShoppingItem(index: number): void {
+    this.shoppingItems.splice(index, 1);
+    this.saveShoppingList();
   }
   logout(): void { this.tokens.signOut(); this.router.navigate(['/home']); }
 }

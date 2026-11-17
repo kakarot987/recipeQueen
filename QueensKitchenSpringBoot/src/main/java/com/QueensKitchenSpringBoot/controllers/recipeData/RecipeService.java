@@ -21,8 +21,15 @@ import java.io.ByteArrayInputStream;
 public class RecipeService {
     private final RecipeRepository recipes;
     private final FavoriteRepository favorites;
+    private final MealPlanRepository meals;
+    private final RecipeReviewRepository reviews;
     public RecipeService(RecipeRepository recipes, FavoriteRepository favorites) {
-        this.recipes = recipes; this.favorites = favorites;
+        this(recipes, favorites, null, null);
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public RecipeService(RecipeRepository recipes, FavoriteRepository favorites,
+        MealPlanRepository meals, RecipeReviewRepository reviews) {
+        this.recipes = recipes; this.favorites = favorites; this.meals = meals; this.reviews = reviews;
     }
     private static String filter(String input) {
         if (input == null || input.trim().isEmpty()) return null;
@@ -72,6 +79,9 @@ public class RecipeService {
         recipe.setCategory(body.getCategory().trim());
         recipe.setRecipeDescription(body.getCategoryDescription().trim());
         recipe.setPublished(body.isPublished());
+        recipe.setServings(body.getServings());
+        recipe.setPrepMinutes(body.getPrepMinutes());
+        recipe.setCookMinutes(body.getCookMinutes());
         List<RecipeIngredient> ingredients = new ArrayList<>();
         for (RecipeIngredient i : body.getRecipeIngredientList())
             ingredients.add(new RecipeIngredient(i.getName().trim(), i.getIngredientQuantity().trim()));
@@ -100,6 +110,8 @@ public class RecipeService {
     public void delete(Long userId, Long id) {
         Recipe recipe = requireOwner(id, userId);
         favorites.deleteByRecipe_Id(id);
+        if (meals != null) meals.deleteByRecipe_Id(id);
+        if (reviews != null) reviews.deleteByRecipe_Id(id);
         recipes.delete(recipe);
     }
     @Transactional(readOnly = true)
