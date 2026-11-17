@@ -1,7 +1,7 @@
 package com.QueensKitchenSpringBoot.controllers.recipeData.entity;
 
-import javax.persistence.*;
-import javax.validation.constraints.*;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 
 @Entity
 @Table(name = "recipeIngredients")

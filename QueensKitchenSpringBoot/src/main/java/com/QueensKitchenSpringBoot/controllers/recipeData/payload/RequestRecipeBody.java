@@ -1,8 +1,8 @@
 package com.QueensKitchenSpringBoot.controllers.recipeData.payload;
 
 import com.QueensKitchenSpringBoot.controllers.recipeData.entity.*;
-import javax.validation.Valid;
-import javax.validation.constraints.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import java.util.ArrayList;
 import java.util.List;
 

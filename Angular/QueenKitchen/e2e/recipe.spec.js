@@ -8,7 +8,13 @@ test('register, publish, search, favorite and revisit after reload', async ({ pa
   await page.getByLabel('Username').fill(account);
   await page.getByLabel('Email').fill(account + '@example.test');
   await page.getByLabel('Password').fill('testPassword123');
+  // Observe the real API response; a green build must not hide a failing signup request.
+  const signupReply = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/auth/signup', { timeout: 20000 });
   await page.getByRole('button', { name: 'Create account' }).click();
+  const signupResponse = await signupReply;
+  console.log('Signup HTTP status:', signupResponse.status());
+  expect(signupResponse.ok(), 'Signup API must accept registration').toBeTruthy();
   await expect(page.getByText('Account created. Please sign in.')).toBeVisible();
   await page.getByLabel('Password').fill('testPassword123');
   await page.getByRole('button', { name: 'Sign in', exact: true }).last().click();
@@ -23,7 +29,12 @@ test('register, publish, search, favorite and revisit after reload', async ({ pa
   await page.getByPlaceholder('Step title').fill('Simmer');
   await page.getByPlaceholder('Instructions').fill('Heat the tomatoes');
   await page.getByRole('button', { name: 'Add', exact: true }).last().click();
+  const createReply = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/recipes' &&
+    response.request().method() === 'POST', { timeout: 20000 });
   await page.getByRole('button', { name: 'Save recipe' }).click();
+  const createResponse = await createReply;
+  expect(createResponse.status(), 'Recipe API must return Created').toBe(201);
   await expect(page.getByText('Recipe saved.')).toBeVisible();
   await page.getByPlaceholder('Search by title').fill(account);
   await page.getByRole('button', { name: 'Search' }).click();

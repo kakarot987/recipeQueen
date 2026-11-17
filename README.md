@@ -1,6 +1,6 @@
 # Queen's Kitchen / RecipeQueen
 
-A Spring Boot 2.5 + Java 11 + MySQL 8 recipe API with an Angular 13 frontend. For supported-framework upgrades, see the stacked `feature/framework-modernization` branch.
+A Spring Boot 4.1 + Java 21 + MySQL 8 recipe API with an Angular 22 frontend.
 
 > **Security notice:** This repository previously contained hardcoded database passwords and a JWT secret.
 > Treat those values as compromised, rotate them in every environment where they were used,
@@ -9,9 +9,9 @@ A Spring Boot 2.5 + Java 11 + MySQL 8 recipe API with an Angular 13 frontend. Fo
 
 ## Quick start
 
-**Prerequisites:** Docker with Compose, Java 11, Node.js 16 (legacy Angular 13), npm.
+**Prerequisites:** Docker with Compose, Java 21, Node.js 22.22+, npm.
 
-Angular 13 retains a legacy peer-dependency workaround in `.npmrc`. The modernization branch removes the old framework stack.
+Angular 22 uses its own dependency lockfile. The package manifest and lockfile must be kept in sync. Do not upgrade only one of them.
 
 1. From `QueensKitchenSpringBoot/`, copy `.env.example` to `.env` and replace *all* placeholder secrets.
 2. Run `./gradlew clean bootJar` (Windows: `gradlew.bat clean bootJar`).
@@ -94,7 +94,7 @@ Example recipe request:
 
 - Shopping lists and favorites persist in MySQL. Browser E2E tests cover persistence after reload.
 - Images are stored as database BLOBs; object storage is preferable at scale.
-- The legacy Angular 13/Spring Boot 2.5 stack is intentionally retained here for a stable baseline; the modernization branch upgrades both.
+- Dependency security updates still require ongoing maintenance and review.
 - OAuth login and nutritional calculations are not implemented; ratings and meal planning are available.
 - Database migrations, integration/E2E tests, health checks, reverse-proxy login rate limiting and deployment guidance are available. Additional production monitoring, security audits and infrastructure validation remain deployment responsibilities.
 - Do not rely on Angular route hiding for authorization; the backend checks ownership.

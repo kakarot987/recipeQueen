@@ -1,6 +1,6 @@
 package com.QueensKitchenSpringBoot.controllers.recipeData.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity

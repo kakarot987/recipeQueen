@@ -1,6 +1,6 @@
 package com.QueensKitchenSpringBoot.controllers.UserProfilePic.Entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "profile_pic")

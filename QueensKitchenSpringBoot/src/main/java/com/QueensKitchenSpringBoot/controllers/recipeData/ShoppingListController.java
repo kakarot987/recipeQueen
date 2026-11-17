@@ -8,8 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import javax.validation.*;
-import javax.validation.constraints.*;
+import jakarta.validation.*;
+import jakarta.validation.constraints.*;
 import java.util.*;
 import java.util.stream.Collectors;
 

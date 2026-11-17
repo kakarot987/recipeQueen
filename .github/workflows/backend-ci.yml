@@ -16,9 +16,9 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '7.6.4'
+          gradle-version: '8.14.3'
       - name: Compile and run signup security regression
         run: gradle --no-daemon test --tests '*AuthControllerSignupTests'

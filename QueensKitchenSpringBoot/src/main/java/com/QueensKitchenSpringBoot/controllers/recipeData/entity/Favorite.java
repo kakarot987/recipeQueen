@@ -1,6 +1,6 @@
 package com.QueensKitchenSpringBoot.controllers.recipeData.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "recipe_favorites", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "recipe_id"}))
