@@ -31,7 +31,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Test backend
         working-directory: QueensKitchenSpringBoot
         run: |
@@ -62,7 +62,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Build API for browser tests
         working-directory: QueensKitchenSpringBoot
         run: |
