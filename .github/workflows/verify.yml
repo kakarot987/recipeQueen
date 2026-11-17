@@ -51,6 +51,7 @@ jobs:
         working-directory: Angular/QueenKitchen
         run: |
           npm install -g npm@11 && npm ci --no-audit --no-fund
+          node scripts/check-angular-lock.cjs
           npm run build
   e2e:
     # Playwright 1.56.1 Chromium does not support Ubuntu 26.04 on ubuntu-latest.
