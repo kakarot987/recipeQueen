@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.22.3'
           cache: npm
@@ -80,7 +80,7 @@ jobs:
             curl -fsS http://127.0.0.1:5000/actuator/health && break || sleep 3
           done
           curl -fsS http://127.0.0.1:5000/actuator/health
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.22.3'
           cache: npm
@@ -94,7 +94,7 @@ jobs:
             curl -fsS http://127.0.0.1:4200 >/dev/null && break || sleep 3
           done
           curl -fsS http://127.0.0.1:4200 >/dev/null
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.22.3'
       - name: Browser smoke test
